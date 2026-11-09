@@ -647,15 +647,33 @@
       list.appendChild(b);
     });
   }
+  function hdrs(tok){ return { 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' }; }
+  async function readRepo(tok){
+    var r = await fetch(THEME_API + '?ref=main&t=' + Date.now(), { headers:hdrs(tok), cache:'no-store' });
+    if(r.status === 404) return { sha:null, theme:null };
+    if(!r.ok) throw new Error('GitHub ' + r.status);
+    var j = await r.json(), th = null;
+    try{ th = JSON.parse(atob(j.content.replace(/\s/g, ''))).theme; }catch(e){}
+    return { sha:j.sha, theme:th };
+  }
   async function save(name){
     var tok = getToken(); if(!tok) throw new Error('Nu ești conectat.');
-    var h = { 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' };
-    var sha, g = await fetch(THEME_API + '?ref=main', { headers:h });
-    if(g.ok) sha = (await g.json()).sha; else if(g.status !== 404) throw new Error('GitHub ' + g.status);
-    var body = { message:'Temă: ' + name, branch:'main', content:btoa(JSON.stringify({ theme:name, updated:new Date().toISOString() })) };
-    if(sha) body.sha = sha;
-    var p = await fetch(THEME_API, { method:'PUT', headers:Object.assign({ 'Content-Type':'application/json' }, h), body:JSON.stringify(body) });
-    if(!p.ok) throw new Error('Nu am putut salva (' + p.status + '). Tokenul trebuie să aibă drept de scriere pe repo.');
+    var updated = new Date().toISOString(), lastStatus = 0;
+    for(var attempt = 0; attempt < 3; attempt++){
+      var cur = await readRepo(tok);
+      var body = { message:'Temă: ' + name, branch:'main', content:btoa(JSON.stringify({ theme:name, updated:updated })) };
+      if(cur.sha) body.sha = cur.sha;
+      var p = await fetch(THEME_API, { method:'PUT', headers:Object.assign({ 'Content-Type':'application/json' }, hdrs(tok)), body:JSON.stringify(body) });
+      if(p.ok){
+        var chk = await readRepo(tok);                       // verificare: ce e salvat acum în repo
+        if(chk.theme !== name) throw new Error('Salvarea nu s-a confirmat (în repo e „' + chk.theme + '”).');
+        return updated;
+      }
+      lastStatus = p.status;
+      if(p.status !== 409 && p.status !== 422) break;        // sha vechi → reîncearcă cu sha proaspăt
+      await new Promise(function(r){ setTimeout(r, 700); });
+    }
+    throw new Error('Nu am putut salva (' + lastStatus + '). ' + (lastStatus === 403 || lastStatus === 401 ? 'Tokenul trebuie să aibă drept de scriere pe repo.' : 'Încearcă din nou.'));
   }
   async function pick(name){
     if(busy) return;
@@ -663,17 +681,24 @@
     busy = true; msg.textContent = 'Se salvează...';
     window.EMXTheme.preview(name); render();
     try{
-      await save(name);
-      window.EMXTheme.remember(name);
-      msg.textContent = '✓ Salvat. Vizitatorii o văd în câteva minute (la următoarea încărcare).';
+      var u = await save(name);
+      window.EMXTheme.remember(name, u);
+      msg.textContent = '✓ Salvat în repo: ' + window.EMXTheme.list[name].label + '. Vizitatorii o văd în câteva minute.';
     }catch(e){
       window.EMXTheme.preview(before); render();
       msg.textContent = '✗ ' + e.message;
     }
     busy = false;
   }
+  async function showRepoState(){
+    try{
+      var tok = getToken(); if(!tok) return;
+      var r = await readRepo(tok);
+      msg.textContent = 'Salvat acum în repo: ' + (r.theme && window.EMXTheme.list[r.theme] ? window.EMXTheme.list[r.theme].label : 'nimic (Clasic)') + '.';
+    }catch(e){}
+  }
 
-  btn.onclick = function(){ render(); ov.classList.add('open'); };
+  btn.onclick = function(){ render(); ov.classList.add('open'); showRepoState(); };
   document.getElementById('themeClose').onclick = function(){ ov.classList.remove('open'); };
   ov.addEventListener('click', function(e){ if(e.target === ov) ov.classList.remove('open'); });
 
