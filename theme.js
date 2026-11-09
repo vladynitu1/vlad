@@ -165,15 +165,16 @@
     try { window.dispatchEvent(new CustomEvent('emx-theme', { detail:name })); } catch(e){}
   }
 
-  // cache local: {t: tema, u: data salvării}. Compatibil cu valoarea veche (simplu text).
+  // cache local: tema în KEY (text simplu, compatibil cu versiunile vechi), data salvării în KEY_u
   function cached(){
     try {
       var v = localStorage.getItem(KEY); if (!v) return null;
-      if (v.charAt(0) === '{') { var o = JSON.parse(v); return { t:o.t, u:o.u || '' }; }
-      return { t:v, u:'' };
+      var u = localStorage.getItem(KEY + '_u') || '';
+      if (v.charAt(0) === '{') { var o = JSON.parse(v); return { t:o.t, u:o.u || u }; }   // format intermediar
+      return { t:v, u:u };
     } catch(e){ return null; }
   }
-  function remember(n, u){ try { localStorage.setItem(KEY, JSON.stringify({ t:n, u:u || new Date().toISOString() })); } catch(e){} }
+  function remember(n, u){ try { localStorage.setItem(KEY, n); localStorage.setItem(KEY + '_u', u || new Date().toISOString()); } catch(e){} }
   function ts(x){ var d = Date.parse(x || ''); return isNaN(d) ? 0 : d; }
 
   window.EMXTheme = {
@@ -201,4 +202,9 @@
     remember(best.theme, best.updated);
     if (best.theme !== cur) apply(best.theme);
   });
+
+  function sync(){ var c2 = cached(); if (c2 && THEMES[c2.t] && c2.t !== cur) apply(c2.t); }
+  window.addEventListener('pageshow', function(e){ if (e.persisted) sync(); });
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') sync(); });
+  window.addEventListener('storage', function(e){ if (e.key === KEY) sync(); });
 })();
