@@ -165,8 +165,16 @@
     try { window.dispatchEvent(new CustomEvent('emx-theme', { detail:name })); } catch(e){}
   }
 
-  function cached(){ try { return localStorage.getItem(KEY); } catch(e){ return null; } }
-  function remember(n){ try { localStorage.setItem(KEY, n); } catch(e){} }
+  // cache local: {t: tema, u: data salvării}. Compatibil cu valoarea veche (simplu text).
+  function cached(){
+    try {
+      var v = localStorage.getItem(KEY); if (!v) return null;
+      if (v.charAt(0) === '{') { var o = JSON.parse(v); return { t:o.t, u:o.u || '' }; }
+      return { t:v, u:'' };
+    } catch(e){ return null; }
+  }
+  function remember(n, u){ try { localStorage.setItem(KEY, JSON.stringify({ t:n, u:u || new Date().toISOString() })); } catch(e){} }
+  function ts(x){ var d = Date.parse(x || ''); return isNaN(d) ? 0 : d; }
 
   window.EMXTheme = {
     list: THEMES,
@@ -176,13 +184,21 @@
   };
 
   var c = cached();
-  if (c && THEMES[c]) apply(c);
+  if (c && THEMES[c.t]) apply(c.t);
 
-  fetch(RAW + '?t=' + Date.now(), { cache:'no-store' })
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(j){
-      var n = j && THEMES[j.theme] ? j.theme : 'clasic';
-      remember(n);
-      if (n !== cur) apply(n);
-    }).catch(function(){});
+  // citește din două surse (raw GitHub + chiar site-ul) și o ia pe cea mai nouă
+  function get(url){
+    return fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now(), { cache:'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+  }
+  Promise.all([ get(RAW), get('data/theme.json') ]).then(function(res){
+    var best = null;
+    res.forEach(function(j){ if (j && THEMES[j.theme] && (!best || ts(j.updated) > ts(best.updated))) best = j; });
+    if (!best) return;                                   // nimic în repo → rămâne ce are
+    var loc = cached();
+    // dacă ai salvat tu mai recent decât ce vede CDN-ul, păstrează varianta ta
+    if (loc && THEMES[loc.t] && ts(loc.u) > ts(best.updated)) { if (loc.t !== cur) apply(loc.t); return; }
+    remember(best.theme, best.updated);
+    if (best.theme !== cur) apply(best.theme);
+  });
 })();
