@@ -371,7 +371,7 @@
   }
   async function saveBlob(blob, tok){
     var h = { 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' };
-    var sha, g = await fetch(REPO_API + '?ref=main', { headers:h });
+    var sha, g = await fetch(REPO_API + '?ref=main&t=' + Date.now(), { headers:h, cache:'no-store' });
     if(g.ok) sha = (await g.json()).sha; else if(g.status !== 404) throw new Error('GitHub ' + g.status);
     var body = { message:'Admin login', branch:'main', content:btoa(JSON.stringify(blob)) };
     if(sha) body.sha = sha;
