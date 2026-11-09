@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMX Locomotive</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+:root{
+  --bg:#07090f;--s1:#0d1117;--s2:#141b27;--s3:#1a2236;
+  --b1:#1e3356;--b2:#2a4070;
+  --ac:#00c8e8;--ac2:#4dd6f0;--acd:rgba(0,200,232,0.14);--acg:rgba(0,200,232,0.28);
+  --gr:#00e5a0;--grd:rgba(0,229,160,0.10);
+  --am:#ffc940;--amd:rgba(255,201,64,0.12);
+  --rd:#ff4d6d;--rdd:rgba(255,77,109,0.09);
+  --pu:#a855f7;--pud:rgba(168,85,247,0.13);
+  --tx:#d8e8f5;--tx2:#8aafcc;--tx3:#5a7a9a;
+  --fn:'JetBrains Mono',monospace;--fd:'Rajdhani',sans-serif;--fm:'Share Tech Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:var(--fn);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,232,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,232,0.018) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+.banner{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:linear-gradient(135deg,#0a0a1a,#0d1530,#0a1a0a);border-bottom:1px solid transparent;overflow:hidden;gap:8px;flex-wrap:wrap;box-shadow:0 0 40px rgba(0,200,255,0.08)}
+.banner::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;border-bottom:1px solid;border-image:linear-gradient(90deg,transparent,var(--ac),var(--am),transparent) 1;pointer-events:none}
+.banner::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,200,255,0.03),transparent);animation:hdrShine 4s infinite;pointer-events:none}
+@keyframes hdrShine{0%{left:-100%}100%{left:200%}}
+
+.emx-brand{display:flex;flex-direction:column;justify-content:center;gap:1px;position:relative;z-index:1}
+.emx-logo{display:flex;align-items:center;line-height:1}
+.emx-e{font-family:var(--fd);font-size:2rem;font-weight:900;color:var(--ac);letter-spacing:-2px;text-shadow:0 0 20px var(--ac)}
+.emx-m{font-family:var(--fd);font-size:2rem;font-weight:900;color:#fff;letter-spacing:-2px}
+.emx-x{font-family:var(--fd);font-size:2rem;font-weight:900;color:var(--am);letter-spacing:-2px;text-shadow:0 0 20px var(--am)}
+.emx-dot{font-size:.5rem;color:var(--ac);margin-left:4px;animation:pd 1.5s infinite;align-self:center}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.2}}
+.emx-sub{display:flex;flex-direction:column;gap:1px;margin-top:1px}
+.emx-tag{font-family:var(--fm);font-size:0.48rem;color:var(--tx3);letter-spacing:2.5px;text-transform:uppercase}
+.emx-status{font-family:var(--fm);font-size:0.52rem;color:var(--gr);letter-spacing:1px}
+
+.bnav{display:flex;align-items:center;gap:6px;position:relative;z-index:1}
+.bacts{display:flex;gap:6px;flex-shrink:0;position:relative;z-index:1;flex-wrap:wrap}
+
+.btn-mode{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;border:1px solid;font-family:var(--fd);font-size:0.75rem;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:all .18s;white-space:nowrap;text-transform:uppercase;background:rgba(255,201,64,0.12);border-color:var(--am);color:var(--am);box-shadow:0 0 10px rgba(255,201,64,0.15)}
+.btn-mode:hover{background:rgba(255,201,64,0.22);box-shadow:0 0 18px rgba(255,201,64,0.3)}
+.btn-mode.active-edit{background:var(--acd);border-color:var(--ac);color:var(--ac2);box-shadow:0 0 10px var(--acd)}
+.btn-mode.active-edit:hover{background:rgba(0,200,232,.22)}
+
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1px solid;font-family:var(--fd);font-size:0.72rem;font-weight:600;letter-spacing:1px;cursor:pointer;transition:all .16s;white-space:nowrap;text-transform:uppercase}
+.btn svg{width:11px;height:11px;flex-shrink:0}
+.btn-g{background:transparent;border-color:var(--b2);color:var(--tx2)}
+.btn-g:hover{border-color:var(--ac);color:var(--ac2);background:var(--acd)}
+.btn-ac{background:var(--acd);border-color:var(--ac);color:var(--ac2)}
+.btn-ac:hover{background:rgba(0,200,232,.22);box-shadow:0 0 12px var(--acg)}
+.btn-gr{background:var(--grd);border-color:var(--gr);color:var(--gr)}
+.btn-gr:hover{background:rgba(0,229,160,.2);box-shadow:0 0 10px rgba(0,229,160,.3)}
+.btn-am{background:var(--amd);border-color:var(--am);color:var(--am)}
+.btn-am:hover{background:rgba(255,201,64,.22);box-shadow:0 0 10px rgba(255,201,64,.3)}
+.btn-rd{background:var(--rdd);border-color:var(--rd);color:var(--rd);padding:3px 7px;font-size:9px}
+.btn-rd:hover{background:rgba(255,77,109,.22)}
+.btn-sm{padding:4px 8px;font-size:0.68rem}
+
+#editActions{display:none;gap:6px;flex-wrap:wrap}
+#editActions.visible{display:flex}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(7,9,15,0.92);z-index:300;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
+.overlay.open{display:flex}
+.modal{background:var(--s2);border:1px solid var(--b2);border-radius:14px;padding:22px;width:100%;max-width:460px;position:relative}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--am),var(--ac),transparent);border-radius:14px 14px 0 0}
+.modal h2{font-family:var(--fd);font-size:1.1rem;font-weight:700;letter-spacing:2px;color:var(--am);text-transform:uppercase;margin-bottom:12px}
+.mclose{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--tx3);font-size:1.1rem;cursor:pointer;font-family:var(--fd)}
+.mclose:hover{color:var(--rd)}
+.tok-field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.tok-field label{font-family:var(--fd);font-size:0.62rem;letter-spacing:2px;color:var(--tx3);text-transform:uppercase}
+.tok-input{background:var(--bg);border:1px solid var(--b2);color:var(--tx);font-family:var(--fm);font-size:.83rem;padding:8px 10px;border-radius:7px;outline:none;width:100%;transition:border-color .18s}
+.tok-input:focus{border-color:var(--am)}
+.tok-hint{font-size:.7rem;color:var(--tx3);line-height:1.6;margin-bottom:12px}
+.tok-hint a{color:var(--am)}
+.tok-hint strong{color:var(--ac);font-family:var(--fd);letter-spacing:.5px}
+.tok-actions{display:flex;flex-direction:column;gap:6px}
+.tok-actions .btn{width:100%;justify-content:center}
+
+main{position:relative;z-index:1;max-width:940px;margin:0 auto;padding:20px 16px 80px}
+.llist{display:flex;flex-direction:column;gap:18px}
+
+/* ── CATEGORIA (group card) ── */
+.cat-card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;overflow:hidden;position:relative;animation:ci .22s ease}
+@keyframes ci{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.cat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--am),var(--ac))}
+
+/* CAT HEAD */
+.cat-head{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--s2);border-bottom:1px solid var(--b1)}
+.cat-seria-lbl{font-family:var(--fd);font-size:18px;font-weight:900;color:var(--am);letter-spacing:3px;text-shadow:0 0 12px rgba(255,201,64,0.4);flex-shrink:0}
+.cat-count{font-family:var(--fm);font-size:10px;color:var(--tx3);margin-left:2px}
+.cat-head-actions{margin-left:auto;display:flex;gap:5px}
+
+/* CAT BODY */
+.cat-body{padding:10px 14px;display:flex;flex-direction:column;gap:5px}
+
+/* VIEW ROW */
+.v-loco-row{display:flex;align-items:center;gap:0;background:var(--s3);border:1px solid var(--b2);border-radius:7px;overflow:hidden}
+.v-seria-tag{background:rgba(255,201,64,0.08);border-right:1px solid var(--b2);font-family:var(--fm);font-size:12px;font-weight:700;color:var(--am);padding:6px 10px;min-width:72px;flex-shrink:0;text-align:center}
+.v-nums{display:flex;align-items:center;flex:1;padding:5px 10px;gap:7px;flex-wrap:wrap}
+.v-chip{display:inline-flex;align-items:center;background:rgba(0,200,232,0.07);border:1px solid rgba(0,200,232,0.18);border-radius:5px;padding:3px 8px;font-family:var(--fm);font-size:12px;color:var(--ac2);font-weight:500}
+.v-empty{font-family:var(--fd);font-size:10px;color:var(--tx3);letter-spacing:1px}
+
+/* EDIT ROW */
+.e-loco-row{display:flex;align-items:center;gap:0;background:var(--s3);border:1px solid var(--b2);border-radius:7px;overflow:hidden}
+.e-loco-row:focus-within{border-color:var(--am);box-shadow:0 0 0 2px var(--amd)}
+.e-seria{background:rgba(255,201,64,0.08);border-right:1px solid var(--b2);font-family:var(--fm);font-size:12px;font-weight:700;color:var(--am);padding:5px 8px;width:86px;text-align:center;outline:none;border-top:none;border-bottom:none;border-left:none}
+.e-seria:focus{background:rgba(255,201,64,0.16)}
+.e-seria::placeholder{color:var(--tx3);font-weight:400;font-size:10px}
+.e-num{font-family:var(--fm);font-size:12px;color:var(--tx);padding:5px 7px;flex:1;text-align:center;outline:none;background:transparent;border:none;border-right:1px solid var(--b2);min-width:68px}
+.e-num:focus{background:rgba(0,200,232,0.07);color:var(--ac2)}
+.e-num::placeholder{color:var(--tx3);font-size:10px}
+.e-num-last{border-right:none}
+.e-del{background:transparent;border:none;border-left:1px solid var(--b2);color:var(--tx3);cursor:pointer;padding:5px 9px;font-size:11px;transition:all .15s;flex-shrink:0}
+.e-del:hover{background:var(--rdd);color:var(--rd)}
+
+.empty{text-align:center;padding:60px 20px;color:var(--tx3)}
+.eico{font-size:40px;margin-bottom:12px;opacity:.45}
+.etit{font-family:var(--fd);font-size:18px;font-weight:700;color:var(--tx2);margin-bottom:6px;letter-spacing:2px}
+.esub{font-size:11px;letter-spacing:.5px}
+
+.toast{position:fixed;bottom:20px;right:18px;z-index:999;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--tx);display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.5);transform:translateY(70px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-color:var(--gr)}
+.toast.err{border-color:var(--rd)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+@media(max-width:560px){
+  .banner{padding:8px 10px}
+  .emx-e,.emx-m,.emx-x{font-size:1.6rem}
+  main{padding:10px 8px 60px}
+  .e-seria{width:70px;font-size:11px}
+  .e-num{min-width:56px;font-size:11px}
+}
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+
+<header class="banner">
+  <div class="emx-brand">
+    <div class="emx-logo">
+      <span class="emx-e">E</span><span class="emx-m">M</span><span class="emx-x">X</span>
+      <span class="emx-dot">●</span>
+    </div>
+    <div class="emx-sub">
+      <span class="emx-tag">LOCOMOTIVE</span>
+      <span class="emx-status" id="stxt">NESALVAT</span>
+    </div>
+  </div>
+
+  <div class="bnav">
+    <button class="btn-mode" id="btnMode" onclick="toggleMode()">✎ AM</button>
+  </div>
+
+  <div class="bacts" id="editActions">
+    <button class="btn btn-g" onclick="openTokenModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Token
+    </button>
+    <button class="btn btn-gr" onclick="saveGH()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Salvează
+    </button>
+    <button class="btn btn-am" onclick="addLoco()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Adaugă
+    </button>
+  </div>
+</header>
+
+<div class="overlay" id="tokenOverlay">
+  <div class="modal">
+    <button class="mclose" onclick="closeTokenModal()">✕</button>
+    <h2>🔑 GitHub Token</h2>
+    <div class="tok-hint">
+      Sincronizare automată pe toate dispozitivele.<br>
+      Repo: <strong>vladynitu1/Vlad</strong> · Fișier: <strong>am.json</strong><br><br>
+      <strong>Cum obții tokenul:</strong><br>
+      1. Mergi pe <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>
+      2. Bifează permisiunea <strong>repo</strong><br>
+      3. Click <strong>Generate token</strong> și copiază-l
+    </div>
+    <div class="tok-field">
+      <label>Personal Access Token</label>
+      <input id="ghTok" class="tok-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxx" oninput="saveCfg()">
+    </div>
+    <div id="tokStatus" style="font-family:var(--fm);font-size:.7rem;min-height:18px;margin-bottom:8px;color:var(--gr)"></div>
+    <div class="tok-actions">
+      <button class="btn btn-g" onclick="loadGH()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        Încarcă din GitHub
+      </button>
+      <button class="btn btn-gr" onclick="saveGH()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvează pe GitHub
+      </button>
+      <button class="btn btn-ac" onclick="closeTokenModal()">✓ OK</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="llist" id="llist"></div>
+  <div class="empty" id="empty">
+    <div class="eico">🚂</div>
+    <div class="etit">NICIO LOCOMOTIVĂ</div>
+    <div class="esub" id="emptySub">Apasă "✎ AM" pentru a edita</div>
+  </div>
+</main>
+
+<div class="toast" id="toast">
+  <span id="tIco">✓</span><span id="tMsg"></span>
+</div>
+
+<script>
+// D = array de { id, seria, n1, n2, n3 }
+// Seria e ce scrie userul (ex: "DH", "BR", "LDE 1234")
+// Gruparea se face dupa seria.trim().toUpperCase() la render
+let D = [];
+let editMode = false;
+const $ = id => document.getElementById(id);
+
+const GH_USER = 'vladynitu1';
+const GH_REPO = 'Vlad';
+const GH_FILE = 'am.json';
+let ghToken = localStorage.getItem('gh_token_am') || localStorage.getItem('gh_token') || '';
+
+function ghHeaders(){ return {'Authorization':'token '+ghToken,'Accept':'application/vnd.github+json','Content-Type':'application/json'} }
+function saveCfg(){ ghToken=$('ghTok').value.trim(); localStorage.setItem('gh_token_am',ghToken); }
+function loadCfg(){ $('ghTok').value = ghToken; }
+function openTokenModal(){ $('tokenOverlay').classList.add('open'); }
+function closeTokenModal(){ $('tokenOverlay').classList.remove('open'); }
+
+function showToast(msg, type='ok'){
+  const t=$('toast');
+  $('tMsg').textContent=msg; $('tIco').textContent=type==='ok'?'✓':'✗';
+  t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),3400);
+}
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function newLoco(){ return {id:uid(), seria:'', n1:'', n2:'', n3:''}; }
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function mu(){ $('stxt').textContent='NESALVAT ●'; }
+function setSaved(){ $('stxt').textContent='SALVAT ✓'; }
+
+/* Grupează D după seria (case-insensitive, trimmed).
+   Returnează array de { seria, locos: [{idx, loco}] } sortate alfabetic,
+   cu seria goală la sfârșit. */
+function getGroups(){
+  const map = new Map();
+  D.forEach((loco, idx) => {
+    const key = (loco.seria||'').trim().toUpperCase() || '—';
+    if(!map.has(key)) map.set(key, []);
+    map.get(key).push({idx, loco});
+  });
+  // sortare: seria definita alfabetic, seria goala la final
+  const keys = [...map.keys()].sort((a,b)=>{
+    if(a==='—') return 1;
+    if(b==='—') return -1;
+    return a.localeCompare(b);
+  });
+  return keys.map(k => ({seria: k, locos: map.get(k)}));
+}
+
+/* ── MODE TOGGLE ── */
+function toggleMode(){
+  editMode = !editMode;
+  const btn = $('btnMode');
+  const ea = $('editActions');
+  if(editMode){
+    btn.textContent='◀ Înapoi';
+    btn.classList.add('active-edit');
+    ea.classList.add('visible');
+    $('emptySub').textContent='Apasă "Adaugă" pentru a adăuga o locomotivă';
+  } else {
+    btn.textContent='✎ AM';
+    btn.classList.remove('active-edit');
+    ea.classList.remove('visible');
+    $('emptySub').textContent='Apasă "✎ AM" pentru a edita';
+  }
+  render();
+}
+
+/* ── RENDER ── */
+function render(){
+  $('empty').style.display = D.length ? 'none' : 'block';
+  const list = $('llist');
+  list.innerHTML = '';
+  const groups = getGroups();
+  if(editMode){
+    groups.forEach(g => list.appendChild(buildEditGroup(g)));
+  } else {
+    groups.forEach(g => list.appendChild(buildViewGroup(g)));
+  }
+}
+
+/* ── VIEW GROUP ── */
+function buildViewGroup(g){
+  const card = document.createElement('div');
+  card.className = 'cat-card';
+  card.innerHTML = `
+    <div class="cat-head">
+      <span class="cat-seria-lbl">${esc(g.seria)}</span>
+      <span class="cat-count">${g.locos.length} loc.</span>
+    </div>
+    <div class="cat-body" id="vg-${esc(g.seria)}"></div>`;
+  const body = card.querySelector(`[id="vg-${esc(g.seria)}"]`);
+  g.locos.forEach(({loco}) => {
+    const row = document.createElement('div');
+    row.className = 'v-loco-row';
+    const tag = document.createElement('div');
+    tag.className = 'v-seria-tag';
+    tag.textContent = loco.seria || '—';
+    row.appendChild(tag);
+    const nums = document.createElement('div');
+    nums.className = 'v-nums';
+    const vals = [loco.n1, loco.n2, loco.n3].filter(n => n && n.trim());
+    if(vals.length === 0){
+      nums.innerHTML = `<span class="v-empty">— fără număr —</span>`;
+    } else {
+      vals.forEach(n => {
+        const chip = document.createElement('span');
+        chip.className = 'v-chip';
+        chip.textContent = n;
+        nums.appendChild(chip);
+      });
+    }
+    row.appendChild(nums);
+    body.appendChild(row);
+  });
+  return card;
+}
+
+/* ── EDIT GROUP ── */
+function buildEditGroup(g){
+  const card = document.createElement('div');
+  card.className = 'cat-card';
+  const safeId = g.seria.replace(/[^a-zA-Z0-9]/g,'_');
+  card.innerHTML = `
+    <div class="cat-head">
+      <span class="cat-seria-lbl">${esc(g.seria)}</span>
+      <span class="cat-count">${g.locos.length} loc.</span>
+    </div>
+    <div class="cat-body" id="eg-${safeId}"></div>`;
+  const body = card.querySelector(`#eg-${safeId}`);
+  g.locos.forEach(({idx, loco}) => {
+    body.appendChild(buildEditRow(idx, loco));
+  });
+  // Add buton
+  const addWrap = document.createElement('div');
+  addWrap.style.cssText = 'padding:4px 0 2px';
+  // Buton adauga in aceeasi serie
+  const addSameBtn = document.createElement('button');
+  addSameBtn.className = 'btn btn-g btn-sm';
+  addSameBtn.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Adaugă în ${esc(g.seria)}`;
+  addSameBtn.addEventListener('click', () => {
+    const newL = newLoco();
+    newL.seria = g.seria === '—' ? '' : g.seria;
+    D.push(newL);
+    render(); mu();
+  });
+  addWrap.appendChild(addSameBtn);
+  body.appendChild(addWrap);
+  return card;
+}
+
+/* ── EDIT ROW ── */
+function buildEditRow(idx, loco){
+  const row = document.createElement('div');
+  row.className = 'e-loco-row';
+
+  const inpSeria = document.createElement('input');
+  inpSeria.className = 'e-seria';
+  inpSeria.type = 'text';
+  inpSeria.maxLength = 12;
+  inpSeria.placeholder = 'Seria';
+  inpSeria.value = loco.seria || '';
+  inpSeria.title = 'Seria (ex: DH, BR)';
+  inpSeria.addEventListener('change', function(){
+    D[idx].seria = this.value.trim();
+    render(); mu();
+  });
+  inpSeria.addEventListener('input', function(){
+    D[idx].seria = this.value;
+    mu();
+  });
+  row.appendChild(inpSeria);
+
+  ['n1','n2','n3'].forEach((field, fi) => {
+    const inp = document.createElement('input');
+    inp.className = 'e-num' + (fi===2?' e-num-last':'');
+    inp.type = 'text';
+    inp.maxLength = 12;
+    inp.placeholder = fi===0 ? '3220-9' : fi===1 ? '739-7' : '339-2';
+    inp.value = loco[field] || '';
+    inp.title = `Număr ${fi+1}`;
+    inp.addEventListener('input', function(){ D[idx][field]=this.value; mu(); });
+    row.appendChild(inp);
+  });
+
+  const btnDel = document.createElement('button');
+  btnDel.className = 'e-del';
+  btnDel.title = 'Șterge';
+  btnDel.innerHTML = '✕';
+  btnDel.addEventListener('click', () => {
+    if(!confirm('Ștergi locomotiva?')) return;
+    D.splice(idx,1); render(); mu();
+  });
+  row.appendChild(btnDel);
+
+  return row;
+}
+
+/* Buton global "Adaugă" din header */
+function addLoco(){
+  const newL = newLoco();
+  D.push(newL);
+  render(); mu();
+  // scroll to bottom
+  setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),50);
+}
+
+function showTokStatus(msg, color){
+  const el=$('tokStatus'); if(el){el.textContent=msg;el.style.color=color||'var(--gr)'}
+}
+
+async function saveGH(){
+  if(!ghToken){ openTokenModal(); showToast('Introdu tokenul GitHub!','err'); return; }
+  showToast('Se salvează...','ok'); showTokStatus('⏳ Se salvează...','var(--am)');
+  const body=JSON.stringify(D,null,2);
+  const bytes=new TextEncoder().encode(body);
+  let binary=''; bytes.forEach(b=>binary+=String.fromCharCode(b));
+  const enc=btoa(binary);
+  let sha=null;
+  try{
+    const r=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}?_=${Date.now()}`,{headers:ghHeaders(),cache:'no-store'});
+    if(r.ok){const d=await r.json();sha=d.sha;}
+    else if(r.status!==404){showToast('Eroare SHA: '+r.status,'err');return;}
+  }catch(e){}
+  try{
+    const payload={message:`AM ${new Date().toLocaleString('ro')}`,content:enc};
+    if(sha) payload.sha=sha;
+    const r=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{method:'PUT',headers:ghHeaders(),body:JSON.stringify(payload)});
+    if(!r.ok){
+      const e=await r.json().catch(()=>({}));
+      if(r.status===409||r.status===422){showTokStatus('⚠️ Reîncerc...','var(--am)');setTimeout(saveGH,1500);}
+      else{showToast('Eroare: '+(e.message||r.status),'err');showTokStatus('❌ '+(e.message||r.status),'var(--rd)');}
+      return;
+    }
+    setSaved(); showToast('Salvat pe GitHub! ✓'); showTokStatus('✅ Salvat cu succes!','var(--gr)');
+  }catch(e){showToast('Eroare rețea: '+e.message,'err');}
+}
+
+async function loadGH(){
+  if(!ghToken){showToast('Introdu tokenul GitHub!','err');return;}
+  showToast('Se încarcă...','ok'); showTokStatus('⏳ Se încarcă...','var(--am)');
+  try{
+    const r=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}?_=${Date.now()}`,{headers:ghHeaders(),cache:'no-store'});
+    if(!r.ok){showToast('Fișierul nu există încă.','err');showTokStatus('⚠️ Fișierul nu există.','var(--am)');return;}
+    const d=await r.json();
+    const raw=atob(d.content.replace(/\s/g,''));
+    const bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
+    const json=new TextDecoder().decode(bytes);
+    const loaded=JSON.parse(json);
+    if(Array.isArray(loaded)){D=loaded;render();setSaved();showToast('Date încărcate! ✓');showTokStatus('✅ Date încărcate!','var(--gr)');}
+  }catch(e){showToast('Eroare: '+e.message,'err');}
+}
+
+async function autoSync(){
+  if(!ghToken) return;
+  try{
+    const r=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}?_=${Date.now()}`,{headers:ghHeaders(),cache:'no-store'});
+    if(!r.ok) return;
+    const d=await r.json();
+    const raw=atob(d.content.replace(/\s/g,''));
+    const bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
+    const json=new TextDecoder().decode(bytes);
+    const loaded=JSON.parse(json);
+    if(Array.isArray(loaded)){D=loaded;render();setSaved();}
+  }catch(e){}
+}
+
+loadCfg(); render();
+if(ghToken) setTimeout(autoSync,600);
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible') autoSync();
+});
+</script>
+<script src="status.js" defer></script>
+</body>
+</html>
