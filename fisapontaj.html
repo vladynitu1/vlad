@@ -96,6 +96,7 @@ tr.totrow td:first-child{color:var(--acc);text-transform:uppercase}
 .fld{background:var(--surf2);border:1px solid var(--bord2);border-radius:5px;color:var(--txt);font-size:.82rem;padding:6px 9px;width:100%}
 </style>
 <script src="theme.js?v=3"></script>
+<script src="luni.js?v=1"></script>
 </head>
 <body>
 <div class="app">
@@ -128,6 +129,7 @@ tr.totrow td:first-child{color:var(--acc);text-transform:uppercase}
   <h2 style="color:var(--grn)">📥 Preia din fișă</h2>
   <div class="roleBar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
   <p style="font-size:.72rem;color:var(--txtm);margin-bottom:10px">Se folosesc turnusurile publicate de administrator. Cele adăugate de tine cu același cod (ex: T1) le înlocuiesc doar la tine.</p>
+  <div class="tn-field" style="margin-bottom:10px"><label>Luna fișei (din primul cuvânt al numelui fișei)</label><select class="fld" id="preiaLunaFisa" onchange="onPreiaLuna()"></select><div id="preiaHint" style="font-size:.68rem;color:var(--yel);margin-top:4px"></div></div>
   <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:10px">
     <div class="tn-field"><label>Fișa (din Fișa de lucru)</label><select class="fld" id="preiaDoc"></select></div>
     <div class="tn-field"><label>Luna (1-12)</label><input class="fld" id="preiaLuna" type="number" min="1" max="12"></div>
@@ -897,25 +899,48 @@ function preiaOre(){
   try{localStorage.setItem('pontaj_nume',v)}catch(e){}
   preiaNume(v);
 }
+let PREIA_DOCS=[];
 async function openPreia(){
   document.getElementById('preiaLuna').value=curM+1;
   let nm='';try{nm=localStorage.getItem('pontaj_nume')||(JSON.parse(localStorage.getItem('pontaj_names')||'[]')[0])||''}catch(e){}
   document.getElementById('preiaNume').value=nm;
   document.getElementById('preiaOverlay').classList.add('open');
   const sel=document.getElementById('preiaDoc');sel.innerHTML='<option>Se încarcă...</option>';
-  const idx=await ghRaw('data/mecanici/index.json');
-  if(!Array.isArray(idx)||!idx.length){sel.innerHTML='<option value="">Nu am găsit fișe</option>';return}
-  idx.sort((a,b)=>String(b.uploadedAt).localeCompare(String(a.uploadedAt)));
-  sel.innerHTML='';idx.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.filename+' ('+String(d.uploadedAt).slice(0,10)+')';o.dataset.fn=d.filename;sel.appendChild(o)});
-  const g=MO.findIndex(x=>normS(sel.options[0].dataset.fn).includes(normS(x)));if(g>=0)document.getElementById('preiaLuna').value=g+1;
+  const [a,b]=await Promise.all([ghRaw('data/mecanici/index.json'),ghRaw('data/conductori/index.json')]);
+  PREIA_DOCS=[];
+  (Array.isArray(a)?a:[]).forEach(d=>PREIA_DOCS.push(Object.assign({},d,{_cat:'mecanici'})));
+  (Array.isArray(b)?b:[]).forEach(d=>PREIA_DOCS.push(Object.assign({},d,{_cat:'conductori'})));
+  fillPreiaLuni();
+}
+// luna implicită = luna curentă (se schimbă singură după 23:59:59 din ultima zi a lunii)
+function fillPreiaLuni(){
+  const ls=document.getElementById('preiaLunaFisa'),cur=EMXLuni.currentKey();
+  const ms=EMXLuni.months(PREIA_DOCS);
+  ls.innerHTML='';
+  ms.forEach(m=>{const o=document.createElement('option');o.value=m.key;o.textContent=m.label+(m.has?'':' (fără fișă)');ls.appendChild(o)});
+  ls.value=String(cur);
+  onPreiaLuna();
+}
+function onPreiaLuna(){
+  const ls=document.getElementById('preiaLunaFisa'),sel=document.getElementById('preiaDoc'),hint=document.getElementById('preiaHint');
+  const key=parseInt(ls.value,10);
+  const pref=ROLE==='mecanici'?'mecanici':'conductori';
+  const docs=EMXLuni.filter(PREIA_DOCS,key).sort((a,b)=>(a._cat===pref?0:1)-(b._cat===pref?0:1)||String(b.uploadedAt).localeCompare(String(a.uploadedAt)));
+  sel.innerHTML='';
+  if(!docs.length){const o=document.createElement('option');o.value='';o.textContent='Nu există fișă pentru '+EMXLuni.labelOf(key);sel.appendChild(o)}
+  docs.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.dataset.cat=d._cat;o.dataset.fn=d.filename;o.textContent=d.filename+' ('+(d._cat==='mecanici'?'Mecanici':'Șefi tren / Vânzători')+')';sel.appendChild(o)});
+  document.getElementById('preiaLuna').value=(key%12)+1;
+  const y=Math.floor(key/12);
+  hint.textContent=y!==curYear?'⚠ Fișa e din '+y+', dar pontajul deschis e pe '+curYear+' — schimbă anul sus dacă e nevoie.':'';
 }
 function closePreia(){document.getElementById('preiaOverlay').classList.remove('open')}
 async function preiaNume(name){
-  const id=document.getElementById('preiaDoc').value,luna=parseInt(document.getElementById('preiaLuna').value);
-  if(!id){alert('Alege o fișă!');return}
+  const dsel=document.getElementById('preiaDoc'),id=dsel.value,luna=parseInt(document.getElementById('preiaLuna').value);
+  const cat=(dsel.options[dsel.selectedIndex]&&dsel.options[dsel.selectedIndex].dataset.cat)||'mecanici';
+  if(!id){alert('Nu există fișă pentru luna aleasă!');return}
   if(!luna||luna<1||luna>12){alert('Luna invalidă!');return}
   setPreiaStatus('⏳ Citesc fișa...','var(--yel)');
-  const data=await ghRaw('data/mecanici/'+id+'.json');
+  const data=await ghRaw('data/'+cat+'/'+id+'.json');
   if(!data||!data.rows){setPreiaStatus('❌ Nu am putut citi fișa.','var(--red)');return}
   const q=normS(name).split(' ');
   const c=splitBlocksStructured(data.rows).filter(b=>{const w=normS(b.name).split(' ');return q.every(x=>w.includes(x))});
