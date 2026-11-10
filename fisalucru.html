@@ -205,9 +205,7 @@
     <div class="board-sub">PROGRAM DE LUCRU</div>
   </div>
   <div class="tabs" id="tabs">
-    <div class="tab active" data-cat="conductori">Șefi Tren / Vânzători Bilete</div>
-    <div class="tab" data-cat="mecanici">Mecanici</div>
-    <div class="tab cross" data-cat="cross">Cine e la trenul X?</div>
+    <div class="tab cross active" data-cat="cross">Cine e la trenul X?</div>
     <div class="tab team" data-cat="team">Programul unei persoane</div>
   </div>
 </div>
@@ -364,12 +362,7 @@ async function loadAllMeta(){
 
 function renderTabs(){
   const tabsEl = document.getElementById('tabs');
-  const authed = hasToken();
   let html = '';
-  if(authed){
-    html += '<div class="tab' + (state.category==='conductori' && state.view==='list' || (state.view==='detail'&&state.category==='conductori') ? ' active':'') + '" data-cat="conductori">Șefi Tren / Vânzători Bilete</div>';
-    html += '<div class="tab' + (state.category==='mecanici' && (state.view==='list'||state.view==='detail') ? ' active':'') + '" data-cat="mecanici">Mecanici</div>';
-  }
   html += '<div class="tab cross' + (state.view==='cross' ? ' active':'') + '" data-cat="cross">Cine e la trenul X?</div>';
   html += '<div class="tab team' + (state.view==='team' ? ' active':'') + '" data-cat="team">Programul unei persoane</div>';
   tabsEl.innerHTML = html;
@@ -677,7 +670,7 @@ async function getBlocksForDoc(cat, id){
 
 async function renderDetail(cat, doc){
   const container = document.getElementById('app');
-  container.innerHTML = '<span class="back-link" id="back-btn">&larr; înapoi la listă</span>' +
+  container.innerHTML = '<span class="back-link" id="back-btn">&larr; înapoi</span>' +
     '<h2 style="margin:4px 0 2px;">' + escapeHtml(doc.filename) + '</h2>' +
     '<div class="doc-meta" style="margin-bottom:16px;">' + CATS[cat] + (doc.month ? ' · ' + escapeHtml(doc.month) : '') + ' · încărcat ' + new Date(doc.uploadedAt).toLocaleDateString('ro-RO') + '</div>' +
     '<div class="card">' +
@@ -692,7 +685,7 @@ async function renderDetail(cat, doc){
     '</div>' +
     '<div id="blocks-container"><div class="empty">Se procesează...</div></div>';
 
-  document.getElementById('back-btn').onclick = ()=>{ state.view='list'; state.openDocId=null; render(); };
+  document.getElementById('back-btn').onclick = ()=>{ if(document.referrer && history.length > 1) history.back(); else location.href = 'index.html'; };
 
   const blocks = await getBlocksForDoc(cat, doc.id);
 
@@ -1283,9 +1276,10 @@ async function render(){
   if(state.view==='detail' && state.openDocId){
     const doc = (state.docsMeta[state.category]||[]).find(d=>d.id===state.openDocId);
     if(doc){ await renderDetail(state.category, doc); return; }
-    state.view='list';
   }
-  renderList();
+  state.view = 'cross'; state.openDocId = null;
+  renderTabs();
+  await renderCross();
 }
 
 function updateGhAccountBtn(){
@@ -1302,7 +1296,9 @@ window.addEventListener('storage', function(e){
 });
 
 (async function init(){
-  state.view = hasToken() ? 'list' : 'cross';
+  state.view = 'cross';
+  const qs = new URLSearchParams(location.search), qc = qs.get('cat'), qd = qs.get('doc');
+  if(hasToken() && CATS[qc] && qd){ state.category = qc; state.view = 'detail'; state.openDocId = qd; }
   renderTabs();
   await loadAllMeta();
   render();
