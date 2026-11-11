@@ -848,7 +848,6 @@ async function renderCross(){
   const container = document.getElementById('app');
   container.innerHTML =
     '<h2 style="margin:0 0 4px;">Cine e la trenul X?</h2>' +
-    '<div class="doc-meta" style="margin-bottom:16px;">Caută o zi și un cod de tren — primești toți oamenii (mecanic, șef tren, vânzător bilete) găsiți în ziua respectivă cu codul respectiv, din fișele lunii selectate.</div>' +
     monthBarHtml() +
     '<div class="card">' +
       '<div class="search-bar">' +
@@ -857,9 +856,8 @@ async function renderCross(){
         '<div><label>Cod tren</label><input type="text" id="cross-code" placeholder="ex. 16565" value="' + escapeHtml(state.crossCode) + '"></div>' +
         '<button class="btn solid-green" id="cross-btn">Caută trenul</button>' +
       '</div>' +
-      '<div class="search-note">Se caută în fișele lunii selectate din ambele categorii, folosind poziția reconstruită a coloanelor de zile din fiecare PDF.</div>' +
     '</div>' +
-    '<div id="cross-results"><div class="empty">Introdu ziua și codul, apoi apasă Caută trenul.</div></div>';
+    '<div id="cross-results"></div>';
 
   bindMonthBar();
   document.getElementById('cross-btn').onclick = async ()=>{
@@ -1132,7 +1130,6 @@ async function renderTeam(){
   const container = document.getElementById('app');
   container.innerHTML =
     '<h2 style="margin:0 0 4px;">Programul unei persoane</h2>' +
-    '<div class="doc-meta" style="margin-bottom:16px;">Pui numele (mecanic, șef tren sau vânzător bilete) — cu zi vezi doar acea zi, fără zi vezi tot programul pe lună.</div>' +
     monthBarHtml() +
     '<div class="card">' +
       '<div class="search-bar">' +
@@ -1141,7 +1138,6 @@ async function renderTeam(){
         '<div class="day-quick"><button class="btn ghost btn-sm" id="team-day-today" type="button">Azi</button><button class="btn ghost btn-sm" id="team-day-tomorrow" type="button">Mâine</button></div>' +
         '<button class="btn" style="background:var(--org);" id="team-btn">Arată programul</button>' +
       '</div>' +
-      '<div class="search-note">Căutarea ignoră diacriticele (Nitu găsește și Nițu). Lasă ziua goală ca să vezi programul pe toată luna.</div>' +
     '</div>' +
     '<div id="team-results"><div class="empty">Introdu numele, apoi apasă Arată programul.</div></div>';
 

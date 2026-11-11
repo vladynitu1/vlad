@@ -122,7 +122,7 @@
   }
 
   .admin-btn{
-    position:fixed; top:18px; right:18px; z-index:50;
+    position:static;
     padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
     letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
     color:var(--txtd); cursor:pointer; transition:border-color .15s, color .15s;
@@ -203,7 +203,7 @@
   }
 
   .theme-btn{
-    position:fixed; top:18px; right:100px; z-index:50; display:none;
+    position:static; display:none;
     padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
     letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
     color:var(--txtm); cursor:pointer; transition:border-color .15s, color .15s;
@@ -224,7 +224,7 @@
   .theme-msg{ font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--txtd); min-height:16px; margin-top:8px; }
 
   .fise-btn{
-    position:fixed; top:18px; right:196px; z-index:50; display:none;
+    position:static; display:none;
     padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
     letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
     color:var(--txtm); cursor:pointer; transition:border-color .15s, color .15s;
@@ -255,7 +255,7 @@
   .fise-row a{ color:var(--acc); font-size:12px; text-decoration:none; font-family:'Share Tech Mono',monospace; }
   .fise-del{ border-color:var(--bord2); background:transparent; color:var(--txtm); padding:6px 10px; font-size:12px; }
   .fise-del:hover{ border-color:#ff4d6d; color:#ff4d6d; }
-  @media(max-width:480px){ .theme-btn{ right:92px; } .fise-btn{ right:182px; } }
+  .admin-row{ display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin:-8px 0 24px; }
 </style>
 <script src="theme.js?v=3"></script>
 <script src="luni.js?v=1"></script>
@@ -279,6 +279,12 @@
     <span class="e">E</span><span class="m">M</span><span class="x">X</span><span class="dot" id="statusDot">●</span>
   </div>
   <div class="tagline">alege instrumentul</div>
+
+  <div class="admin-row" id="adminRow">
+    <button class="fise-btn" id="fiseBtn">📤 Fișe</button>
+    <button class="theme-btn" id="themeBtn">🎨 Temă</button>
+    <button class="admin-btn" id="adminBtn">Admin</button>
+  </div>
 
   <div class="actions" id="actions">
     <a href="fisalucru.html" class="action-btn">
@@ -314,9 +320,7 @@
   </div>
 </div>
 
-<button class="admin-btn" id="adminBtn">Admin</button>
 
-<button class="fise-btn" id="fiseBtn">📤 Fișe</button>
 
 <div class="overlay" id="fiseOverlay">
   <div class="modal fise-modal">
@@ -337,7 +341,6 @@
   </div>
 </div>
 
-<button class="theme-btn" id="themeBtn">🎨 Temă</button>
 
 <div class="overlay" id="themeOverlay">
   <div class="modal">
