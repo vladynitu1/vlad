@@ -91,12 +91,12 @@
     var ov = el('div', { 'class':'st-ov', id:'st-gate', role:'dialog', 'aria-modal':'true' });
     var box = el('div', { 'class':'st-box' });
     box.appendChild(el('h2', null, 'Bine ai venit!'));
-    box.appendChild(el('p', null, 'Scrie numele și prenumele tău. Nu se creează cont și nu ai nevoie de parolă.'));
+    box.appendChild(el('p', null, 'Scrie numele și prenumele tău.'));
     box.appendChild(el('label', { 'for':'st-nume' }, 'Nume'));
     var iN = el('input', { id:'st-nume', type:'text', autocomplete:'family-name', maxlength:'30', placeholder:'ex. Nițu' });
     box.appendChild(iN);
     box.appendChild(el('label', { 'for':'st-prenume' }, 'Prenume'));
-    var iP = el('input', { id:'st-prenume', type:'text', autocomplete:'given-name', maxlength:'30', placeholder:'ex. Ionuț' });
+    var iP = el('input', { id:'st-prenume', type:'text', autocomplete:'given-name', maxlength:'30', placeholder:'ex. Ionuț-Vladuț' });
     box.appendChild(iP);
     var err = el('div', { 'class':'st-err' });
     box.appendChild(err);
@@ -108,7 +108,7 @@
 
     function submit(){
       var a = clean(iN.value), b = clean(iP.value);
-      if (letters(a) < 2 || letters(b) < 2) { err.textContent = 'Completează numele și prenumele (minimum 2 litere fiecare).'; return; }
+      if (letters(a) < 2 || letters(b) < 2) { err.textContent = 'Completează numele și prenumele .'; return; }
       var n = tcase(a) + ' ' + tcase(b);
       set('emx_member', JSON.stringify({ n:n, t:Date.now() }));
       member = { n:n };
