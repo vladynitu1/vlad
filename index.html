@@ -844,7 +844,7 @@
       var t = r.titlu.trim();
       if(t || nr.length) cats.push({ id:r.id, titlu:t || '(fără titlu)', numere:nr });
     });
-    return { v:3, categorii:cats };
+    return { v:3, updated:new Date().toISOString(), categorii:cats };
   }
 
   // focus: { id, num } -> num = index de număr, sau 'title'
@@ -917,8 +917,11 @@
         if(cur.sha) body.sha = cur.sha;
         var p = await fetch(API, { method:'PUT', headers:Object.assign({ 'Content-Type':'application/json' }, hdrs(tok)), body:JSON.stringify(body) });
         if(p.ok){
+          var chk = await readRepo(tok);                       // verificare: ce e scris acum în repo
+          var got = chk.data && Array.isArray(chk.data.categorii) ? chk.data.categorii : null;
+          if(!got || JSON.stringify(got) !== JSON.stringify(data.categorii)) throw new Error('Salvarea nu s-a confirmat în repo (vladynitu1.github.io › am.json). Verifică dacă tokenul are drept de scriere.');
           rows = toRows(data); render();
-          msg.textContent = '✓ Salvat. Pagina Număr Rame se actualizează în câteva minute.';
+          msg.textContent = '✓ Salvat în repo: ' + (data.categorii.map(function(c){ return c.titlu + ' (' + c.numere.length + ' numere)'; }).join(', ') || 'nimic') + '.';
           busy = false; saveBtn.disabled = false; return;
         }
         last = p.status;
