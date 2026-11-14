@@ -46,7 +46,7 @@
 
     if (!nav){                                   // am.html / turnus.html: nu au rând de butoane → îl creez
       nav = document.createElement('div'); nav.className = 'emx-nav';
-      var items = [['index.html','🏠 Acasă'],['fisalucru.html','📋 Fișă de lucru'],['salariu.html','💰 Calcul salariu'],['intarzieri.html','🚆 Întârzieri'],['fisapontaj.html','📅 Pontaj']];
+      var items = [['index.html','🏠 Acasă'],['fisalucru.html','📋 Fișă de lucru'],['salariu.html','💰 Calcul salariu'],['intarzieri.html','🚆 Întârzieri'],['fisapontaj.html','📅 Pontaj'],['am.html','🚂 Număr Rame']];
       nav.innerHTML = items.map(function(i){ return '<a href="' + i[0] + '">' + i[1] + '</a>'; }).join('');
       w.appendChild(nav);
     } else { w.appendChild(nav); }

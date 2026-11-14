@@ -255,6 +255,29 @@
   .fise-row a{ color:var(--acc); font-size:12px; text-decoration:none; font-family:'Share Tech Mono',monospace; }
   .fise-del{ border-color:var(--bord2); background:transparent; color:var(--txtm); padding:6px 10px; font-size:12px; }
   .fise-del:hover{ border-color:#ff4d6d; color:#ff4d6d; }
+  .rame-btn{
+    position:static; display:none;
+    padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
+    letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
+    color:var(--txtm); cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .rame-btn:hover{ border-color:var(--acc); color:var(--acc); }
+  .rame-modal{ max-width:560px !important; max-height:88vh; overflow-y:auto; }
+  .rame-list{ display:flex; flex-direction:column; gap:10px; margin:12px 0; }
+  .rame-row{ display:grid; grid-template-columns:1fr auto; gap:8px; padding:12px; border:1px solid var(--bord2); border-radius:10px; background:var(--surf2); }
+  .rame-row label{ grid-column:1 / -1; font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--txtd); margin-bottom:-4px; }
+  .rame-row input{ background:var(--surf); border:1px solid var(--bord2); color:var(--txt); padding:9px 10px; border-radius:7px; font-family:'Share Tech Mono',monospace; font-size:13px; width:100%; min-width:0; box-sizing:border-box; }
+  .rame-row input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px var(--acc2); }
+  .rame-nums{ grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .num-cell{ display:flex; align-items:stretch; width:128px; }
+  .rame-row .num-cell input{ border-radius:7px 0 0 7px; padding:8px 8px; font-size:12.5px; }
+  .num-x{ flex:none; width:26px; border:1px solid var(--bord2); border-left:none; border-radius:0 7px 7px 0; background:transparent; color:var(--txtd); cursor:pointer; font-size:11px; }
+  .num-x:hover{ border-color:#ff4d6d; color:#ff4d6d; }
+  .num-add{ padding:8px 12px; border-radius:7px; border:1px dashed var(--bord2); background:transparent; color:var(--txtm); cursor:pointer; font-family:'Share Tech Mono',monospace; font-size:12px; }
+  .num-add:hover{ border-color:var(--acc); color:var(--acc); }
+  .rame-del{ padding:0 12px; border-radius:7px; border:1px solid var(--bord2); background:transparent; color:var(--txtm); cursor:pointer; font-size:13px; }
+  .rame-del:hover{ border-color:#ff4d6d; color:#ff4d6d; }
+  .rame-empty{ font-family:'Share Tech Mono',monospace; font-size:11.5px; color:var(--txtd); padding:8px 2px; }
   .admin-row{ display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin:-8px 0 24px; }
 </style>
 <script src="theme.js?v=3"></script>
@@ -283,6 +306,7 @@
   <div class="admin-row" id="adminRow">
     <button class="fise-btn" id="fiseBtn">📤 Fișe</button>
     <button class="theme-btn" id="themeBtn">🎨 Temă</button>
+    <button class="rame-btn" id="rameBtn">🚂 Rame</button>
     <button class="admin-btn" id="adminBtn">Admin</button>
   </div>
 
@@ -306,6 +330,11 @@
       <span class="action-icon">📅</span>
       <span class="action-title">Pontaj</span>
       <span class="action-sub">fișă de pontaj</span>
+    </a>
+    <a href="am.html" class="action-btn">
+      <span class="action-icon">🚂</span>
+      <span class="action-title">Număr Rame</span>
+      <span class="action-sub">categorii &amp; coduri</span>
     </a>
     <a href="bani.html" class="action-btn" id="baniBtn" style="display:none;">
       <span class="action-icon">💵</span>
@@ -348,6 +377,19 @@
     <div class="modal-title">🎨 Temă site</div>
     <div class="theme-list" id="themeList"></div>
     <div class="theme-msg" id="themeMsg">Se aplică pe toate paginile, pentru toți vizitatorii.</div>
+  </div>
+</div>
+
+<div class="overlay" id="rameOverlay">
+  <div class="modal rame-modal">
+    <button class="modal-close" id="rameClose">✕</button>
+    <div class="modal-title">🚂 Număr Rame</div>
+    <div class="fise-hint">Pe pagina Număr Rame se afișează titlul și numerele de mai jos. Apasă <b>+ Număr</b> (sau Enter) pentru a adăuga câte un număr, de ex. <b>RE 020</b>, <b>IR 020</b>. Poți lipi și mai multe deodată, separate prin virgulă.</div>
+    <div class="rame-list" id="rameList"></div>
+    <button class="gh-btn ghost" id="rameAdd">+ Categorie</button>
+    <div class="gh-sep"></div>
+    <button class="gh-btn primary" id="rameSave">Salvează</button>
+    <div class="theme-msg" id="rameMsg"></div>
   </div>
 </div>
 
@@ -768,6 +810,139 @@
 </script>
 
 <script>
+// ── Editor „Număr Rame” (doar pentru admin conectat cu token) ──
+(function(){
+  var API = 'https://api.github.com/repos/vladynitu1/vladynitu1.github.io/contents/am.json';
+  var btn = document.getElementById('rameBtn'), ov = document.getElementById('rameOverlay');
+  var list = document.getElementById('rameList'), msg = document.getElementById('rameMsg');
+  var saveBtn = document.getElementById('rameSave');
+  var rows = [], busy = false;
+
+  function uid(){ return Math.random().toString(36).slice(2, 9); }
+  function hdrs(tok){ return { 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' }; }
+  function b64dec(b){ var raw = atob(b.replace(/\s/g, '')), by = new Uint8Array(raw.length); for(var i = 0; i < raw.length; i++) by[i] = raw.charCodeAt(i); return new TextDecoder().decode(by); }
+  function b64enc(str){ var by = new TextEncoder().encode(str), bin = ''; by.forEach(function(c){ bin += String.fromCharCode(c); }); return btoa(bin); }
+  function splitNums(t){ return String(t).split(/[,;\n]/).map(function(x){ return x.trim(); }).filter(Boolean); }
+
+  function toRows(data){
+    if(Array.isArray(data)){                                   // format vechi (listă plată)
+      var seen = [];
+      data.forEach(function(l){ var t = String(l.seria || '').trim(); if(t && seen.indexOf(t) < 0) seen.push(t); });
+      return seen.map(function(t){ return { id:uid(), titlu:t, numere:[] }; });
+    }
+    var cats = (data && Array.isArray(data.categorii)) ? data.categorii : [];
+    return cats.map(function(c){
+      var nr = Array.isArray(c.numere) ? c.numere : (Array.isArray(c.subcategorii) ? c.subcategorii.map(function(s){ return s.titlu; }) : []);
+      return { id:c.id || uid(), titlu:String(c.titlu || ''), numere:nr.map(function(n){ return String(n || ''); }) };
+    });
+  }
+  function toData(){
+    var cats = [];
+    rows.forEach(function(r){
+      var seen = {}, nr = [];
+      r.numere.forEach(function(raw){ splitNums(raw).forEach(function(n){ if(!seen[n.toLowerCase()]){ seen[n.toLowerCase()] = 1; nr.push(n); } }); });
+      var t = r.titlu.trim();
+      if(t || nr.length) cats.push({ id:r.id, titlu:t || '(fără titlu)', numere:nr });
+    });
+    return { v:3, categorii:cats };
+  }
+
+  // focus: { id, num } -> num = index de număr, sau 'title'
+  function render(focus){
+    list.innerHTML = '';
+    if(!rows.length){ var e = document.createElement('div'); e.className = 'rame-empty'; e.textContent = 'Nicio categorie. Apasă „+ Categorie”.'; list.appendChild(e); }
+    rows.forEach(function(r){
+      var box = document.createElement('div'); box.className = 'rame-row';
+      var l1 = document.createElement('label'); l1.textContent = 'Titlu';
+      var t = document.createElement('input'); t.type = 'text'; t.placeholder = 'ex. Alstom Coradia'; t.value = r.titlu;
+      t.oninput = function(){ r.titlu = t.value; };
+      var del = document.createElement('button'); del.type = 'button'; del.className = 'rame-del'; del.textContent = '🗑'; del.title = 'Șterge categoria';
+      del.onclick = function(){ if(!confirm('Ștergi categoria „' + (r.titlu || 'fără titlu') + '”?')) return; rows = rows.filter(function(x){ return x !== r; }); render(); };
+      var l2 = document.createElement('label'); l2.textContent = 'Numere (' + r.numere.filter(function(n){ return n.trim(); }).length + ')';
+      var wrap = document.createElement('div'); wrap.className = 'rame-nums';
+      r.numere.forEach(function(val, i){
+        var cell = document.createElement('div'); cell.className = 'num-cell';
+        var inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'RE 020'; inp.value = val;
+        inp.oninput = function(){ r.numere[i] = inp.value; };
+        inp.onkeydown = function(e){
+          if(e.key === 'Enter'){ e.preventDefault(); r.numere.splice(i + 1, 0, ''); render({ id:r.id, num:i + 1 }); }
+          else if(e.key === 'Backspace' && inp.value === '' && r.numere.length > 0){ e.preventDefault(); r.numere.splice(i, 1); render({ id:r.id, num:Math.max(0, i - 1) }); }
+        };
+        inp.onpaste = function(e){
+          var txt = (e.clipboardData || window.clipboardData).getData('text');
+          var parts = splitNums(txt);
+          if(parts.length > 1 || /[,;\n]/.test(txt)){
+            e.preventDefault();
+            r.numere.splice.apply(r.numere, [i, 1].concat(parts));
+            render({ id:r.id, num:i + parts.length - 1 });
+          }
+        };
+        var x = document.createElement('button'); x.type = 'button'; x.className = 'num-x'; x.textContent = '✕'; x.title = 'Șterge numărul';
+        x.onclick = function(){ r.numere.splice(i, 1); render({ id:r.id, num:Math.max(0, i - 1) }); };
+        cell.appendChild(inp); cell.appendChild(x); wrap.appendChild(cell);
+        if(focus && focus.id === r.id && focus.num === i) setTimeout(function(){ inp.focus(); }, 30);
+      });
+      var add = document.createElement('button'); add.type = 'button'; add.className = 'num-add'; add.textContent = '+ Număr';
+      add.onclick = function(){ r.numere.push(''); render({ id:r.id, num:r.numere.length - 1 }); };
+      wrap.appendChild(add);
+      box.appendChild(l1); box.appendChild(t); box.appendChild(del); box.appendChild(l2); box.appendChild(wrap);
+      list.appendChild(box);
+      if(focus && focus.id === r.id && focus.num === 'title') setTimeout(function(){ t.focus(); }, 30);
+    });
+  }
+
+  async function readRepo(tok){
+    var r = await fetch(API + '?ref=main&t=' + Date.now(), { headers:hdrs(tok), cache:'no-store' });
+    if(r.status === 404) return { sha:null, data:null };
+    if(!r.ok) throw new Error('GitHub ' + r.status);
+    var j = await r.json(), d = null;
+    try{ d = JSON.parse(b64dec(j.content)); }catch(e){}
+    return { sha:j.sha, data:d };
+  }
+  async function open(){
+    ov.classList.add('open'); msg.textContent = 'Se încarcă…';
+    var tok = getToken(); if(!tok){ msg.textContent = '✗ Nu ești conectat.'; return; }
+    try{ var cur = await readRepo(tok); rows = toRows(cur.data); render(); msg.textContent = ''; }
+    catch(e){ rows = []; render(); msg.textContent = '✗ Nu am putut citi lista (' + e.message + ').'; }
+  }
+  async function save(){
+    if(busy) return;
+    var tok = getToken(); if(!tok){ msg.textContent = '✗ Nu ești conectat.'; return; }
+    busy = true; saveBtn.disabled = true; msg.textContent = 'Se salvează…';
+    var data = toData(), last = 0;
+    try{
+      for(var a = 0; a < 3; a++){
+        var cur = await readRepo(tok);
+        var body = { message:'Număr Rame', branch:'main', content:b64enc(JSON.stringify(data, null, 2)) };
+        if(cur.sha) body.sha = cur.sha;
+        var p = await fetch(API, { method:'PUT', headers:Object.assign({ 'Content-Type':'application/json' }, hdrs(tok)), body:JSON.stringify(body) });
+        if(p.ok){
+          rows = toRows(data); render();
+          msg.textContent = '✓ Salvat. Pagina Număr Rame se actualizează în câteva minute.';
+          busy = false; saveBtn.disabled = false; return;
+        }
+        last = p.status;
+        if(p.status !== 409 && p.status !== 422) break;
+        await new Promise(function(r){ setTimeout(r, 700); });
+      }
+      throw new Error('Nu am putut salva (' + last + '). ' + (last === 401 || last === 403 ? 'Tokenul trebuie să aibă drept de scriere pe repo.' : 'Încearcă din nou.'));
+    }catch(e){ msg.textContent = '✗ ' + e.message; }
+    busy = false; saveBtn.disabled = false;
+  }
+
+  btn.onclick = open;
+  document.getElementById('rameAdd').onclick = function(){ var r = { id:uid(), titlu:'', numere:[] }; rows.push(r); render({ id:r.id, num:'title' }); };
+  saveBtn.onclick = save;
+  document.getElementById('rameClose').onclick = function(){ ov.classList.remove('open'); };
+  ov.addEventListener('click', function(e){ if(e.target === ov) ov.classList.remove('open'); });
+
+  var base = refreshAdminUI;
+  refreshAdminUI = function(){ base(); btn.style.display = hasToken() ? 'block' : 'none'; };
+  refreshAdminUI();
+})();
+</script>
+
+<script>
 // ── Încărcare fișe de lucru (doar admin cu token) ──
 (function(){
   var OWNER = 'vladynitu1', REPO = 'vladynitu1.github.io', BRANCH = 'main', DIR = 'data';
@@ -939,6 +1114,6 @@
 </script>
 
 <script src="nume-auto.js?v=1" defer></script>
-<script src="status.js?v=7" defer></script>
+<script src="status.js?v=8" defer></script>
 </body>
 </html>

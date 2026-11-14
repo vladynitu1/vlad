@@ -28,7 +28,7 @@
   var id = get('st_id');
   if (!id) { id = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); set('st_id', id); }
   var PAGE = location.pathname.split('/').pop().replace(/\.html$/,'') || 'index';
-  var PAGES = { index:'Acasă', fisalucru:'Fișă de lucru', salariu:'Calcul salariu', fisapontaj:'Pontaj', test:'Pontaj (test)', intarzieri:'Întârzieri', bani:'Bani de luat', cs2:'CS2', am:'AM', turnus:'Turnus' };
+  var PAGES = { index:'Acasă', fisalucru:'Fișă de lucru', salariu:'Calcul salariu', fisapontaj:'Pontaj', test:'Pontaj (test)', intarzieri:'Întârzieri', bani:'Bani de luat', cs2:'CS2', am:'Număr Rame', turnus:'Turnus' };
 
   /* ---------- nume ---------- */
   function clean(s){ return String(s||'').replace(/[^\p{L}\s'’-]/gu,'').replace(/\s+/g,' ').trim().slice(0,30); }
