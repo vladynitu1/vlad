@@ -68,6 +68,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .cat-title{font-family:'Rajdhani',sans-serif;font-weight:800;font-size:1.35rem;color:var(--acc);letter-spacing:.04em;line-height:1.1;margin-bottom:12px;overflow-wrap:anywhere}
 .nums{display:flex;flex-wrap:wrap;gap:8px}
 .num{display:inline-flex;align-items:center;background:var(--acc2);border:1px solid rgba(255,31,61,.35);border-radius:7px;padding:6px 13px;font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--txt);letter-spacing:.04em}
+.src{margin-top:26px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--txtd);opacity:.7}
 .none{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--txtd)}
 .empty{color:var(--txtd);font-size:.85rem;text-align:center;padding:36px 10px;font-family:'Share Tech Mono',monospace;line-height:1.7}
 
@@ -101,6 +102,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <div class="app">
   <div class="grid" id="list"></div>
   <div class="empty" id="empty">Se încarcă…</div>
+  <div class="src" id="src"></div>
 </div>
 
 <script>
@@ -155,14 +157,37 @@ function render(cats, loaded){
   em.textContent = loaded ? 'Nicio categorie încă.' : 'Se încarcă…';
 }
 
+const API = 'https://api.github.com/repos/vladynitu1/vladynitu1.github.io/contents/am.json?ref=main';
+function b64dec(b){
+  const raw = atob(b.replace(/\s/g,'')), by = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) by[i] = raw.charCodeAt(i);
+  return new TextDecoder().decode(by);
+}
+async function fetchData(){
+  // 1) direct din repo (date proaspete, fără întârzierea de publicare a site-ului)
+  try{
+    const h = { 'Accept':'application/vnd.github+json' };
+    let tok = ''; try{ tok = localStorage.getItem('emx_gh_token') || ''; }catch(e){}
+    if(tok) h.Authorization = 'token ' + tok;
+    const r = await fetch(API + '&t=' + Date.now(), { headers:h, cache:'no-store' });
+    if(r.ok){ const j = await r.json(); return { data:JSON.parse(b64dec(j.content)), src:'repo' }; }
+  }catch(e){}
+  // 2) copia publicată a site-ului
+  const r = await fetch('am.json?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return { data:await r.json(), src:'site' };
+}
 async function load(silent){
   try{
-    const r = await fetch('am.json?t='+Date.now(),{cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    render(normalize(await r.json()), true);
+    const { data, src } = await fetchData();
+    const cats = normalize(data);
+    render(cats, true);
+    const nr = cats.reduce((n,c)=>n+c.numere.length,0);
+    let up = ''; if(data && data.updated){ const d = new Date(data.updated); if(!isNaN(d)) up = ' · salvat ' + d.toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+    $('src').textContent = 'am.json (' + src + '): ' + cats.length + ' categorii, ' + nr + ' numere' + up;
     $('statusDot').classList.add('status-connected');
   }catch(e){
-    if(!silent) render([], true);
+    if(!silent){ render([], true); $('src').textContent = 'Nu am putut citi am.json (' + e.message + ')'; }
   }
 }
 
