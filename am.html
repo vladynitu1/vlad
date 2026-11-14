@@ -108,16 +108,28 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
    Se editează din pagina Acasă (admin › 🚂 Rame). Aici doar se afișează. */
 const $ = id => document.getElementById(id);
 
+function asList(v){
+  if(Array.isArray(v)) return v;
+  if(typeof v === 'string') return v.split(/[,;\n]/);
+  return [];
+}
 function normalize(data){
   if(Array.isArray(data)){                          // format vechi (listă plată cu „seria”)
     const seen = [];
     data.forEach(l=>{ const t = String(l.seria||'').trim(); if(t && !seen.includes(t)) seen.push(t); });
     return seen.map(t=>({ titlu:t, numere:[] }));
   }
-  const cats = (data && Array.isArray(data.categorii)) ? data.categorii : [];
-  return cats.map(c=>{
-    let nr = Array.isArray(c.numere) ? c.numere : (Array.isArray(c.subcategorii) ? c.subcategorii.map(s=>s.titlu) : []);
-    return { titlu:String(c.titlu||''), numere:nr.map(n=>String(n||'').trim()).filter(Boolean) };
+  const cats = (data && (data.categorii || data.categories)) || [];
+  return (Array.isArray(cats) ? cats : []).map(c=>{
+    // numerele pot fi în c.numere (format curent) sau, în formatele mai vechi, ca titluri de subcategorii
+    let nr = asList(c.numere).concat(asList(c.numbers));
+    asList(c.subcategorii).forEach(s=>{
+      if(s && typeof s === 'object'){ if(s.titlu) nr.push(s.titlu); asList(s.numere).forEach(n=>nr.push(n)); }
+      else if(s) nr.push(s);
+    });
+    const seen = {}, out = [];
+    nr.forEach(n=>{ n = String(n==null?'':n).trim(); if(n && !seen[n.toLowerCase()]){ seen[n.toLowerCase()] = 1; out.push(n); } });
+    return { titlu:String(c.titlu||''), numere:out };
   }).filter(c=>c.titlu.trim() || c.numere.length);
 }
 
