@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMX</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#050505;color:#f0d8d8;font-family:'Exo 2',system-ui,sans-serif;text-align:center}
+  h1{font-size:3rem;margin:0;color:#ff1f3d}
+  p{color:#7a5555;margin:.6rem 0 1.4rem}
+  a{display:inline-block;padding:10px 22px;border:1px solid #5c1c1c;border-radius:8px;color:#f0d8d8;text-decoration:none;background:#160c0c}
+  a:hover{border-color:#ff1f3d}
+</style>
+<script>
+// Adrese vechi (ex. /am.html, /Am.html, /fisalucru.html) -> folderul nou (ex. /am/, /fisalucru/)
+(function(){
+  var m = location.pathname.match(/\/(am|bani|cs2|fisalucru|fisapontaj|intarzieri|salariu|test|turnus)\.html$/i);
+  if(m) location.replace('/' + m[1].toLowerCase() + '/' + location.search + location.hash);
+})();
+</script>
+</head>
+<body>
+  <div>
+    <h1>404</h1>
+    <p>Pagina nu a fost găsită.</p>
+    <a href="/">Înapoi la Acasă</a>
+  </div>
+</body>
+</html>

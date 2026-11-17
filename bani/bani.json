@@ -1,0 +1,53 @@
+{
+  "people": [
+    {
+      "id": 103,
+      "name": "Cristi",
+      "entries": [
+        {
+          "id": 203,
+          "amount": 2200,
+          "reason": "Paza"
+        },
+        {
+          "id": 204,
+          "amount": 500,
+          "reason": "Imprumut"
+        },
+        {
+          "id": 205,
+          "amount": 500,
+          "reason": "Imprumut"
+        },
+        {
+          "id": 211,
+          "amount": 100,
+          "reason": "M"
+        },
+        {
+          "id": 218,
+          "amount": 400,
+          "reason": "Imprumut"
+        },
+        {
+          "id": 219,
+          "amount": 4500,
+          "reason": "Masina"
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "name": "Bologa",
+      "entries": [
+        {
+          "id": 206,
+          "amount": 9000,
+          "reason": "Masina"
+        }
+      ]
+    }
+  ],
+  "nextPersonId": 107,
+  "nextEntryId": 221
+}

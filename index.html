@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050505;--surf:#0d0808;--surf2:#160c0c;
+    --bord:#3d1414;--bord2:#5c1c1c;
+    --acc:#ff1f3d;--acc2:rgba(255,31,61,0.14);
+    --grn:#ff6b3d;
+    --org:#ff8c42;
+    --txt:#f0d8d8;--txtd:#7a5555;--txtm:#c08a8a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:'Exo 2', sans-serif;
+    overflow-x:hidden; overflow-y:auto;
+    position:relative;
+  }
+  body::before{
+    content:''; position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(255,31,61,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,31,61,0.03) 1px, transparent 1px);
+    background-size:42px 42px;
+    pointer-events:none; z-index:0;
+  }
+  body::after{
+    content:''; position:fixed; inset:0;
+    background:radial-gradient(ellipse 900px 600px at 50% 40%, rgba(255,31,61,.10), transparent 65%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* ================= PRELOADER ================= */
+  #preloader{
+    position:fixed; inset:0; z-index:100;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:var(--bg);
+    transition:opacity .7s ease, visibility .7s ease;
+  }
+  #preloader.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+
+  .ball-stage{
+    position:relative; width:170px; height:230px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ball{
+    width:150px; height:150px; position:relative;
+    animation: bounce 1.3s cubic-bezier(.45,0,.55,1) infinite;
+  }
+  .ball::before{
+    content:''; position:absolute; inset:-60px; z-index:0; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,31,61,.62) 0%, rgba(255,31,61,.34) 32%, rgba(255,31,61,.10) 52%, transparent 68%);
+  }
+  .ball canvas{ position:relative; z-index:1; width:150px; height:150px; display:block; }
+  .ball-shadow{
+    position:absolute; bottom:6px; left:50%; transform:translateX(-50%);
+    width:96px; height:18px; border-radius:50%;
+    background:rgba(0,0,0,.65); filter:blur(7px);
+    animation: shadowPulse 1.3s cubic-bezier(.45,0,.55,1) infinite;
+  }
+
+  @keyframes bounce{
+    0%,100%{ transform:translateY(-38px); }
+    50%{ transform:translateY(6px); }
+  }
+  @keyframes shadowPulse{
+    0%,100%{ width:64px; opacity:.35; }
+    50%{ width:100px; opacity:.7; }
+  }
+
+  .load-status{
+    margin-top:26px; display:flex; flex-direction:column; align-items:center; gap:10px;
+  }
+  .load-word{
+    font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:.35em;
+    text-transform:uppercase; color:var(--txtd);
+  }
+  .load-bar{
+    width:180px; height:3px; background:var(--surf2); border:1px solid var(--bord);
+    border-radius:2px; overflow:hidden;
+  }
+  .load-bar-fill{
+    height:100%; width:0%; background:linear-gradient(90deg, var(--acc), var(--grn));
+    box-shadow:0 0 10px rgba(255,31,61,.6);
+    transition:width .1s linear;
+  }
+  .load-pct{
+    font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--acc); letter-spacing:.08em;
+  }
+
+  /* ================= MAIN ================= */
+  #main{
+    position:relative; z-index:1;
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px 24px 60px; text-align:center;
+    opacity:0; transform:translateY(14px);
+    transition:opacity .8s ease, transform .8s ease;
+  }
+  #main.show{ opacity:1; transform:translateY(0); }
+
+  .logo{
+    display:flex; align-items:baseline; gap:2px; line-height:1; margin-bottom:8px;
+  }
+  .logo .e{font-family:'Rajdhani',sans-serif; font-size:clamp(52px,12vw,84px); font-weight:900; color:var(--acc); letter-spacing:-2px; text-shadow:0 0 26px rgba(255,31,61,.6);}
+  .logo .m{font-family:'Rajdhani',sans-serif; font-size:clamp(52px,12vw,84px); font-weight:900; color:#fff; letter-spacing:-2px; text-shadow:0 0 18px rgba(255,255,255,.35);}
+  .logo .x{font-family:'Rajdhani',sans-serif; font-size:clamp(52px,12vw,84px); font-weight:900; color:var(--grn); letter-spacing:-2px; text-shadow:0 0 26px rgba(255,107,61,.6);}
+  .logo .dot{color:var(--acc); font-size:22px; margin-left:6px; animation:blink 1.6s infinite;}
+  .logo .dot.status-connected{ color:#2ed573; text-shadow:0 0 14px rgba(46,213,115,.9); }
+  @keyframes blink{0%,100%{opacity:1;} 50%{opacity:.2;}}
+
+  .tagline{
+    font-family:'Share Tech Mono',monospace; font-size:11.5px; letter-spacing:.28em;
+    text-transform:uppercase; color:var(--txtd); margin-bottom:26px;
+  }
+
+  .admin-btn{
+    position:static;
+    padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
+    letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
+    color:var(--txtd); cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .admin-btn:hover{ border-color:var(--acc); color:var(--acc); }
+  .admin-btn.connected{ color:var(--grn); border-color:rgba(255,107,61,.4); }
+
+  .overlay{
+    position:fixed; inset:0; z-index:200; display:none;
+    align-items:center; justify-content:center; padding:20px;
+    background:rgba(5,5,5,.85); backdrop-filter:blur(4px);
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:var(--surf); border:1px solid var(--bord2); border-radius:14px;
+    padding:24px; width:100%; max-width:380px; position:relative; text-align:left;
+  }
+  .modal::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:14px 14px 0 0;
+    background:linear-gradient(90deg, var(--acc), var(--grn));
+  }
+  .modal-title{
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:16px; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--txt); margin-bottom:14px;
+  }
+  .modal-close{
+    position:absolute; top:12px; right:14px; background:none; border:none; color:var(--txtd);
+    font-size:18px; cursor:pointer; line-height:1;
+  }
+  .modal-close:hover{ color:var(--acc); }
+  .modal-status{
+    font-family:'Share Tech Mono',monospace; font-size:11.5px; color:var(--txtd); margin-bottom:12px;
+  }
+  .modal-status.connected{ color:var(--grn); }
+  .gh-form input{
+    width:100%; background:var(--surf2); border:1px solid var(--bord2); color:var(--txt);
+    padding:9px 10px; border-radius:6px; font-family:'Share Tech Mono',monospace; font-size:12.5px;
+    margin-bottom:12px;
+  }
+  .gh-form input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px var(--acc2); }
+  .gh-btn{
+    padding:9px 14px; border-radius:6px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:12.5px;
+    letter-spacing:.06em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf2);
+    color:var(--txtd); cursor:pointer; transition:filter .15s, border-color .15s, color .15s; width:100%;
+  }
+  .gh-btn.primary{ background:var(--acc); color:#050505; border-color:var(--acc); margin-bottom:8px; }
+  .gh-btn:hover{ filter:brightness(1.1); }
+  .gh-btn.ghost:hover{ color:var(--acc,#ff2d55); border-color:var(--acc,#ff2d55); }
+  .gh-note{ font-family:'Share Tech Mono',monospace; font-size:10.5px; line-height:1.5; color:var(--txtd); margin:2px 0 12px; }
+  .gh-sep{ height:8px; }
+
+  .actions{
+    display:flex; gap:18px; flex-wrap:wrap; justify-content:center; max-width:520px;
+  }
+  .action-btn{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    width:210px; padding:30px 20px;
+    background:var(--surf); border:1px solid var(--bord2); border-radius:14px;
+    text-decoration:none; color:var(--txt);
+    position:relative; overflow:hidden;
+    transition:transform .2s ease, border-color .2s ease, background .2s ease;
+  }
+  .action-btn::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, var(--acc), var(--grn)); opacity:.85;
+  }
+  .action-btn:hover{ transform:translateY(-4px); border-color:var(--acc); background:var(--surf2); }
+  .action-icon{ font-size:30px; filter:drop-shadow(0 0 10px rgba(255,31,61,.5)); }
+  .action-title{
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:18px; letter-spacing:.03em; text-transform:uppercase;
+  }
+  .action-sub{
+    font-family:'Share Tech Mono',monospace; font-size:10.5px; color:var(--txtd); letter-spacing:.05em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .ball, .ball-shadow{ animation:none !important; }
+  }
+
+  .theme-btn{
+    position:static; display:none;
+    padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
+    letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
+    color:var(--txtm); cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .theme-btn:hover{ border-color:var(--acc); color:var(--acc); }
+  .theme-list{ display:flex; flex-direction:column; gap:8px; margin:14px 0 4px; }
+  .theme-opt{
+    display:flex; align-items:center; gap:12px; width:100%; padding:11px 14px; border-radius:10px;
+    border:1px solid var(--bord2); background:var(--surf2); color:var(--txt); cursor:pointer;
+    font-family:'Exo 2',sans-serif; font-size:14px; text-align:left; transition:border-color .15s, background .15s;
+  }
+  .theme-opt:hover{ border-color:var(--acc); }
+  .theme-opt.active{ border-color:var(--acc); background:var(--acc2); }
+  .theme-opt .sw{ display:flex; gap:3px; flex:none; }
+  .theme-opt .sw i{ width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,.2); }
+  .theme-opt .nm{ flex:1; }
+  .theme-opt .ck{ font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--acc); letter-spacing:.06em; }
+  .theme-msg{ font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--txtd); min-height:16px; margin-top:8px; }
+
+  .fise-btn{
+    position:static; display:none;
+    padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
+    letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
+    color:var(--txtm); cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .fise-btn:hover{ border-color:var(--acc); color:var(--acc); }
+  .fise-modal{ max-width:580px !important; max-height:88vh; overflow-y:auto; }
+  .fise-tabs{ display:flex; gap:8px; margin:12px 0; }
+  .fise-tab{
+    flex:1; padding:9px 10px; border-radius:9px; border:1px solid var(--bord2); background:var(--surf2); color:var(--txtm);
+    font-family:'Exo 2',sans-serif; font-size:13px; cursor:pointer; transition:border-color .15s, background .15s;
+  }
+  .fise-tab.active{ border-color:var(--acc); background:var(--acc2); color:var(--txt); }
+  .fise-up{ display:flex; flex-direction:column; gap:8px; padding:12px; border:1px solid var(--bord2); border-radius:10px; background:var(--surf2); }
+  .fise-up input[type=file]{ color:var(--txtm); font-size:12px; width:100%; }
+  .fise-up input[type=text]{ background:var(--surf); border:1px solid var(--bord2); color:var(--txt); padding:8px 10px; border-radius:7px; font-family:'Share Tech Mono',monospace; font-size:12px; width:100%; box-sizing:border-box; }
+  .fise-up button, .fise-del{
+    padding:8px 14px; border-radius:8px; border:1px solid var(--acc); background:var(--acc2); color:var(--txt); cursor:pointer;
+    font-family:'Exo 2',sans-serif; font-size:13px; font-weight:600;
+  }
+  .fise-up button:disabled{ opacity:.5; cursor:wait; }
+  .fise-hint{ font-family:'Share Tech Mono',monospace; font-size:10.5px; color:var(--txtd); line-height:1.45; }
+  .fise-status{ font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--txtm); min-height:16px; margin-top:8px; white-space:pre-wrap; }
+  .fise-list{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .fise-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--bord2); border-radius:10px; background:var(--surf2); }
+  .fise-row .nm{ flex:1; min-width:0; }
+  .fise-row .nm b{ display:block; font-size:13px; color:var(--txt); word-break:break-word; font-weight:600; }
+  .fise-row .nm span{ font-family:'Share Tech Mono',monospace; font-size:10.5px; color:var(--txtd); }
+  .fise-row a{ color:var(--acc); font-size:12px; text-decoration:none; font-family:'Share Tech Mono',monospace; }
+  .fise-del{ border-color:var(--bord2); background:transparent; color:var(--txtm); padding:6px 10px; font-size:12px; }
+  .fise-del:hover{ border-color:#ff4d6d; color:#ff4d6d; }
+  .rame-btn{
+    position:static; display:none;
+    padding:7px 14px; border-radius:20px; font-family:'Share Tech Mono',monospace; font-size:11px;
+    letter-spacing:.08em; text-transform:uppercase; border:1px solid var(--bord2); background:var(--surf);
+    color:var(--txtm); cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .rame-btn:hover{ border-color:var(--acc); color:var(--acc); }
+  .rame-modal{ max-width:560px !important; max-height:88vh; overflow-y:auto; }
+  .rame-list{ display:flex; flex-direction:column; gap:10px; margin:12px 0; }
+  .rame-row{ display:grid; grid-template-columns:1fr auto; gap:8px; padding:12px; border:1px solid var(--bord2); border-radius:10px; background:var(--surf2); }
+  .rame-row label{ grid-column:1 / -1; font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--txtd); margin-bottom:-4px; }
+  .rame-row input{ background:var(--surf); border:1px solid var(--bord2); color:var(--txt); padding:9px 10px; border-radius:7px; font-family:'Share Tech Mono',monospace; font-size:13px; width:100%; min-width:0; box-sizing:border-box; }
+  .rame-row input:focus{ outline:none; border-color:var(--acc); box-shadow:0 0 0 3px var(--acc2); }
+  .rame-nums{ grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .num-cell{ display:flex; align-items:stretch; width:128px; }
+  .rame-row .num-cell input{ border-radius:7px 0 0 7px; padding:8px 8px; font-size:12.5px; }
+  .num-x{ flex:none; width:26px; border:1px solid var(--bord2); border-left:none; border-radius:0 7px 7px 0; background:transparent; color:var(--txtd); cursor:pointer; font-size:11px; }
+  .num-x:hover{ border-color:#ff4d6d; color:#ff4d6d; }
+  .num-add{ padding:8px 12px; border-radius:7px; border:1px dashed var(--bord2); background:transparent; color:var(--txtm); cursor:pointer; font-family:'Share Tech Mono',monospace; font-size:12px; }
+  .num-add:hover{ border-color:var(--acc); color:var(--acc); }
+  .rame-del{ padding:0 12px; border-radius:7px; border:1px solid var(--bord2); background:transparent; color:var(--txtm); cursor:pointer; font-size:13px; }
+  .rame-del:hover{ border-color:#ff4d6d; color:#ff4d6d; }
+  .rame-empty{ font-family:'Share Tech Mono',monospace; font-size:11.5px; color:var(--txtd); padding:8px 2px; }
+  .admin-row{ display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin:-8px 0 24px; }
+</style>
+<script src="assets/js/theme.js?v=3"></script>
+<script src="assets/js/luni.js?v=1"></script>
+</head>
+<body>
+
+<div id="preloader">
+  <div class="ball-stage">
+    <div class="ball"><canvas id="ballCanvas" width="300" height="300"></canvas></div>
+    <div class="ball-shadow"></div>
+  </div>
+  <div class="load-status">
+    <div class="load-word">se încarcă</div>
+    <div class="load-bar"><div class="load-bar-fill" id="loadFill"></div></div>
+    <div class="load-pct" id="loadPct">0%</div>
+  </div>
+</div>
+
+<div id="main">
+  <div class="logo">
+    <span class="e">E</span><span class="m">M</span><span class="x">X</span><span class="dot" id="statusDot">●</span>
+  </div>
+  <div class="tagline">alege instrumentul</div>
+
+  <div class="admin-row" id="adminRow">
+    <button class="fise-btn" id="fiseBtn">📤 Fișe</button>
+    <button class="theme-btn" id="themeBtn">🎨 Temă</button>
+    <button class="rame-btn" id="rameBtn">🚂 Rame</button>
+    <button class="admin-btn" id="adminBtn">Admin</button>
+  </div>
+
+  <div class="actions" id="actions">
+    <a href="fisalucru/" class="action-btn">
+      <span class="action-icon">📋</span>
+      <span class="action-title">Fișă de lucru</span>
+      <span class="action-sub">program &amp; turnusuri</span>
+    </a>
+    <a href="salariu/" class="action-btn">
+      <span class="action-icon">💰</span>
+      <span class="action-title">Calcul salariu</span>
+      <span class="action-sub">fluturaș &amp; ore</span>
+    </a>
+    <a href="intarzieri/" class="action-btn">
+      <span class="action-icon">🚆</span>
+      <span class="action-title">Întârzieri</span>
+      <span class="action-sub">trenuri &amp; sosiri</span>
+    </a>
+    <a href="fisapontaj/" class="action-btn">
+      <span class="action-icon">📅</span>
+      <span class="action-title">Pontaj</span>
+      <span class="action-sub">fișă de pontaj</span>
+    </a>
+    <a href="am/" class="action-btn">
+      <span class="action-icon">🚂</span>
+      <span class="action-title">Număr Rame</span>
+      <span class="action-sub">categorii &amp; coduri</span>
+    </a>
+    <a href="bani/" class="action-btn" id="baniBtn" style="display:none;">
+      <span class="action-icon">💵</span>
+      <span class="action-title">Bani de luat</span>
+      <span class="action-sub">registru financiar</span>
+    </a>
+    <a href="cs2/" class="action-btn" id="cs2Btn" style="display:none;">
+      <span class="action-icon">🎯</span>
+      <span class="action-title">CS2</span>
+      <span class="action-sub">secrete &amp; lineup-uri</span>
+    </a>
+  </div>
+</div>
+
+
+
+<div class="overlay" id="fiseOverlay">
+  <div class="modal fise-modal">
+    <button class="modal-close" id="fiseClose">✕</button>
+    <div class="modal-title">📤 Fișe de lucru</div>
+    <div class="fise-tabs" id="fiseTabs">
+      <button class="fise-tab active" data-cat="conductori">Șefi Tren / Vânzători Bilete</button>
+      <button class="fise-tab" data-cat="mecanici">Mecanici</button>
+    </div>
+    <div class="fise-up">
+      <input type="file" id="fiseFile" accept="application/pdf">
+      <input type="text" id="fiseMonth" placeholder="Lună / an (opțional — doar dacă numele fișierului nu începe cu luna)">
+      <button id="fiseUpBtn">Încarcă</button>
+      <div class="fise-hint">📅 Luna se ia din primul cuvânt al numelui fișierului (ex. <i>Noiembrie 2026 sefi tren.pdf</i>). Poți încărca 2-3 luni; site-ul folosește automat fișa lunii curente.</div>
+    </div>
+    <div class="fise-status" id="fiseStatus"></div>
+    <div class="fise-list" id="fiseList"></div>
+  </div>
+</div>
+
+
+<div class="overlay" id="themeOverlay">
+  <div class="modal">
+    <button class="modal-close" id="themeClose">✕</button>
+    <div class="modal-title">🎨 Temă site</div>
+    <div class="theme-list" id="themeList"></div>
+    <div class="theme-msg" id="themeMsg">Se aplică pe toate paginile, pentru toți vizitatorii.</div>
+  </div>
+</div>
+
+<div class="overlay" id="rameOverlay">
+  <div class="modal rame-modal">
+    <button class="modal-close" id="rameClose">✕</button>
+    <div class="modal-title">🚂 Număr Rame</div>
+    <div class="fise-hint">Pe pagina Număr Rame se afișează titlul și numerele de mai jos. Apasă <b>+ Număr</b> (sau Enter) pentru a adăuga câte un număr, de ex. <b>RE 020</b>, <b>IR 020</b>. Poți lipi și mai multe deodată, separate prin virgulă.</div>
+    <div class="rame-list" id="rameList"></div>
+    <button class="gh-btn ghost" id="rameAdd">+ Categorie</button>
+    <div class="gh-sep"></div>
+    <button class="gh-btn primary" id="rameSave">Salvează</button>
+    <div class="theme-msg" id="rameMsg"></div>
+  </div>
+</div>
+
+<div class="overlay" id="adminOverlay">
+  <div class="modal">
+    <button class="modal-close" id="adminClose">✕</button>
+    <div class="modal-title">⚙ Admin</div>
+    <div class="modal-status" id="adminStatus">🔒 Neconectat</div>
+    <div class="gh-form" id="adminForm">
+      <div id="loginBox">
+        <input type="email" id="admEmail" placeholder="Email" autocomplete="username">
+        <input type="password" id="admPass" placeholder="Parolă" autocomplete="current-password">
+        <button class="gh-btn primary" id="admLoginBtn">Conectează</button>
+      </div>
+      <div id="setupBox" style="display:none;">
+        <div class="gh-note" id="setupNote">Configurare (o singură dată): introdu tokenul GitHub și alege email + parolă. Tokenul se salvează criptat; emailul și parola nu se scriu nicăieri.</div>
+        <input type="password" id="ghTokenInput" placeholder="Token GitHub (ghp_...)" autocomplete="off">
+        <input type="email" id="setEmail" placeholder="Email nou (opțional)" autocomplete="off">
+        <input type="password" id="setPass" placeholder="Parolă nouă (min. 10 caractere)" autocomplete="new-password">
+        <input type="password" id="setPass2" placeholder="Repetă parola" autocomplete="new-password">
+        <button class="gh-btn primary" id="setSaveBtn">Salvează și conectează</button>
+      </div>
+      <div class="gh-sep"></div>
+      <button class="gh-btn ghost" id="toggleSetupBtn">Prima configurare / conectare cu token</button>
+    </div>
+    <div id="connectedBox" style="display:none;">
+      <button class="gh-btn ghost" id="changeCredsBtn" style="margin-bottom:8px;">Schimbă email / parolă</button>
+      <button class="gh-btn ghost" id="ghDisconnectBtn">Deconectează</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── GitHub token gate (same key used across the EMX suite) ──
+  var TOKEN_KEY = 'emx_gh_token';
+  function getToken(){ return localStorage.getItem(TOKEN_KEY) || ''; }
+  function setToken(t){ localStorage.setItem(TOKEN_KEY, t); }
+  function clearToken(){ localStorage.removeItem(TOKEN_KEY); }
+  function hasToken(){ return !!getToken(); }
+
+  var adminBtn = document.getElementById('adminBtn');
+  var adminOverlay = document.getElementById('adminOverlay');
+  var adminStatus = document.getElementById('adminStatus');
+  var adminForm = document.getElementById('adminForm');
+  var disconnectBtn = document.getElementById('ghDisconnectBtn');
+  function $id(i){ return document.getElementById(i); }
+
+  // ── Email + parolă ──
+  // Pe un site static nu există server care să verifice parola, deci tokenul GitHub e păstrat CRIPTAT
+  // (AES-GCM, cheie derivată din email + parolă cu PBKDF2) în data/admin.json. Emailul și parola nu apar în cod
+  // și nu se trimit nicăieri; doar cine știe ambele poate decripta tokenul în browser.
+  var REPO_API = 'https://api.github.com/repos/vladynitu1/vladynitu1.github.io/contents/data/admin.json';
+  var REPO_RAW = 'https://raw.githubusercontent.com/vladynitu1/vladynitu1.github.io/main/data/admin.json';
+  var adminBlob;           // undefined = neîncărcat, null = nu există
+  var adminMode = 'login'; // login | setup | change
+  var te = new TextEncoder(), td = new TextDecoder();
+  function b64(buf){ var a = new Uint8Array(buf), s = ''; for(var i=0;i<a.length;i++) s += String.fromCharCode(a[i]); return btoa(s); }
+  function unb64(s){ var b = atob(s), a = new Uint8Array(b.length); for(var i=0;i<b.length;i++) a[i] = b.charCodeAt(i); return a; }
+  async function deriveKey(email, pass, salt, iter){
+    var km = await crypto.subtle.importKey('raw', te.encode(email.trim().toLowerCase() + '\u0000' + pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name:'PBKDF2', salt:salt, iterations:iter, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+  }
+  async function encryptToken(tok, email, pass){
+    var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), iter = 600000;
+    var key = await deriveKey(email, pass, salt, iter);
+    var ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv:iv }, key, te.encode(tok));
+    return { v:1, kdf:'PBKDF2-SHA256', iter:iter, salt:b64(salt), iv:b64(iv), ct:b64(ct) };
+  }
+  async function decryptToken(blob, email, pass){
+    var key = await deriveKey(email, pass, unb64(blob.salt), blob.iter);
+    return td.decode(await crypto.subtle.decrypt({ name:'AES-GCM', iv:unb64(blob.iv) }, key, unb64(blob.ct)));
+  }
+  async function fetchBlob(force){
+    if(adminBlob !== undefined && !force) return adminBlob;
+    try{
+      var r = await fetch(REPO_RAW + '?t=' + Date.now(), { cache:'no-store' });
+      adminBlob = r.ok ? await r.json() : null;
+    }catch(e){ adminBlob = null; }
+    return adminBlob;
+  }
+  async function saveBlob(blob, tok){
+    var h = { 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' };
+    var sha, g = await fetch(REPO_API + '?ref=main&t=' + Date.now(), { headers:h, cache:'no-store' });
+    if(g.ok) sha = (await g.json()).sha; else if(g.status !== 404) throw new Error('GitHub ' + g.status);
+    var body = { message:'Admin login', branch:'main', content:btoa(JSON.stringify(blob)) };
+    if(sha) body.sha = sha;
+    var p = await fetch(REPO_API, { method:'PUT', headers:Object.assign({ 'Content-Type':'application/json' }, h), body:JSON.stringify(body) });
+    if(!p.ok) throw new Error('Nu am putut salva în repo (' + p.status + '). Tokenul trebuie să aibă drept de scriere pe vladynitu1.github.io.');
+  }
+  async function verifyToken(tok){
+    var res = await fetch('https://api.github.com/repos/vladynitu1/Vlad', { headers:{ 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' } });
+    return res.ok;
+  }
+
+  function showView(mode){
+    adminMode = mode;
+    $id('loginBox').style.display = mode === 'login' ? '' : 'none';
+    $id('setupBox').style.display = mode === 'login' ? 'none' : '';
+    $id('ghTokenInput').style.display = mode === 'change' ? 'none' : '';
+    $id('toggleSetupBtn').style.display = mode === 'change' ? 'none' : '';
+    $id('toggleSetupBtn').textContent = mode === 'login' ? 'Prima configurare / conectare cu token' : '← Înapoi la email și parolă';
+    $id('setupNote').textContent = mode === 'change'
+      ? 'Alege emailul și parola noi. Tokenul rămâne criptat cu ele; cele vechi nu vor mai funcționa.'
+      : 'Configurare (o singură dată): introdu tokenul GitHub și alege email + parolă. Tokenul se salvează criptat; emailul și parola nu se scriu nicăieri. Lasă emailul și parolele goale ca să te conectezi doar cu token.';
+  }
+  function refreshAdminUI(){
+    var c = hasToken();
+    adminBtn.classList.toggle('connected', c);
+    $id('statusDot').classList.toggle('status-connected', c);
+    adminStatus.textContent = c ? '🟢 Conectat la GitHub' : '🔒 Neconectat';
+    adminStatus.classList.toggle('connected', c);
+    adminForm.style.display = c && adminMode !== 'change' ? 'none' : '';
+    $id('connectedBox').style.display = c && adminMode !== 'change' ? '' : 'none';
+    $id('baniBtn').style.display = c ? '' : 'none';
+    $id('cs2Btn').style.display = c ? '' : 'none';
+  }
+  function openAdmin(){
+    ['admEmail','admPass','ghTokenInput','setEmail','setPass','setPass2'].forEach(function(i){ $id(i).value = ''; });
+    showView('login');
+    refreshAdminUI();
+    adminOverlay.classList.add('open');
+    if(!hasToken()) fetchBlob().then(function(b){ if(!b && !hasToken()){ showView('setup'); $id('setupNote').textContent = 'Nu e setat încă email/parolă. Introdu tokenul GitHub o singură dată și alege email + parolă.'; } });
+  }
+  function closeAdmin(){ adminOverlay.classList.remove('open'); }
+  function busy(btn, on, label){ btn.disabled = on; btn.textContent = on ? 'Se verifică...' : label; }
+
+  async function adminLogin(){
+    var btn = $id('admLoginBtn'), email = $id('admEmail').value.trim(), pass = $id('admPass').value;
+    if(!email || !pass) return;
+    busy(btn, true);
+    try{
+      var blob = await fetchBlob(true);
+      if(!blob) throw new Error('Nu e setat încă email/parolă. Folosește „Prima configurare”.');
+      var tok;
+      try{ tok = await decryptToken(blob, email, pass); }catch(e){ throw new Error('Email sau parolă greșite.'); }
+      if(!(await verifyToken(tok))) throw new Error('Autentificarea e corectă, dar tokenul salvat nu mai e valid. Refă „Prima configurare” cu un token nou.');
+      setToken(tok);
+      $id('admPass').value = '';
+      refreshAdminUI();
+    }catch(e){ alert(e.message); }
+    busy(btn, false, 'Conectează');
+  }
+  async function adminSetup(){
+    var btn = $id('setSaveBtn'), changing = hasToken();
+    var tok = changing ? getToken() : $id('ghTokenInput').value.trim();
+    var email = $id('setEmail').value.trim(), p1 = $id('setPass').value, p2 = $id('setPass2').value;
+    var wantCreds = !!(email || p1 || p2);
+    if(!tok){ alert('Introdu tokenul GitHub.'); return; }
+    if(changing && !wantCreds) return;
+    if(wantCreds){
+      if(!/^\S+@\S+\.\S+$/.test(email)){ alert('Email invalid.'); return; }
+      if(p1.length < 10){ alert('Parola trebuie să aibă minim 10 caractere.'); return; }
+      if(p1 !== p2){ alert('Parolele nu coincid.'); return; }
+    }
+    busy(btn, true);
+    try{
+      if(!(await verifyToken(tok))) throw new Error('Token invalid sau fără acces la repo.');
+      if(!changing) setToken(tok);
+      if(wantCreds){
+        var blob = await encryptToken(tok, email, p1);
+        await saveBlob(blob, tok);
+        adminBlob = blob;
+      }
+      adminMode = 'login';
+      ['ghTokenInput','setEmail','setPass','setPass2'].forEach(function(i){ $id(i).value = ''; });
+      refreshAdminUI();
+      if(wantCreds) alert('Gata. De acum te conectezi cu email și parolă.');
+    }catch(e){
+      refreshAdminUI();
+      alert('Nu am putut finaliza: ' + e.message);
+    }
+    busy(btn, false, 'Salvează și conectează');
+  }
+
+  adminBtn.onclick = openAdmin;
+  $id('adminClose').onclick = closeAdmin;
+  adminOverlay.addEventListener('click', function(e){ if(e.target === adminOverlay) closeAdmin(); });
+  $id('admLoginBtn').onclick = adminLogin;
+  $id('setSaveBtn').onclick = adminSetup;
+  $id('admPass').addEventListener('keydown', function(e){ if(e.key === 'Enter') adminLogin(); });
+  $id('toggleSetupBtn').onclick = function(){ showView(adminMode === 'login' ? 'setup' : 'login'); };
+  $id('changeCredsBtn').onclick = function(){ showView('change'); refreshAdminUI(); };
+  disconnectBtn.onclick = function(){ clearToken(); adminMode = 'login'; showView('login'); refreshAdminUI(); };
+
+  refreshAdminUI();
+</script>
+
+<script>
+(function(){
+  var fill = document.getElementById('loadFill');
+  var pct = document.getElementById('loadPct');
+  var preloader = document.getElementById('preloader');
+  var main = document.getElementById('main');
+
+  var p = 0;
+  var duration = 1900; // ms
+  var start = performance.now();
+
+  function tick(now){
+    var elapsed = now - start;
+    p = Math.min(100, Math.round((elapsed / duration) * 100));
+    fill.style.width = p + '%';
+    pct.textContent = p + '%';
+    if(elapsed < duration){
+      requestAnimationFrame(tick);
+    } else {
+      finish();
+    }
+  }
+
+  function finish(){
+    preloader.classList.add('hide');
+    main.classList.add('show');
+  }
+
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<script>
+// ── Sferă 3D transparentă cu margini negre (canvas, fără biblioteci) ──
+(function(){
+  var canvas = document.getElementById('ballCanvas');
+  if(!canvas) return;
+  var SIZE = 150, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var N = Math.round(SIZE * dpr);
+  canvas.width = N; canvas.height = N;
+  var ctx = canvas.getContext('2d');
+  var img = ctx.createImageData(N, N);
+  var out = img.data;
+
+  // Textură transparentă: grilă neagră + logo EMX alb cu contur negru
+  var TW = 1024, TH = 512, tex = null;
+  function buildTexture(){
+    var c = document.createElement('canvas'); c.width = TW; c.height = TH;
+    var g = c.getContext('2d');
+    g.strokeStyle = '#000'; g.lineWidth = 6;
+    for(var i = 0; i < 12; i++){ var x = i * TW / 12; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, TH); g.stroke(); }
+    for(var j = 1; j < 6; j++){ var y = j * TH / 6; g.beginPath(); g.moveTo(0, y); g.lineTo(TW, y); g.stroke(); }
+    g.font = '900 120px Rajdhani, "Arial Black", Arial, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineJoin = 'round'; g.lineWidth = 14; g.strokeStyle = '#000'; g.fillStyle = '#fff';
+    [0, TW / 2, TW].forEach(function(cx){ g.strokeText('EMX', cx, TH / 2 + 6); g.fillText('EMX', cx, TH / 2 + 6); });
+    tex = g.getImageData(0, 0, TW, TH).data;
+  }
+  buildTexture();
+  if(document.fonts && document.fonts.load){
+    document.fonts.load('900 120px Rajdhani').then(buildTexture).catch(function(){});
+  }
+
+  var R = N / 2, TILT = 0.38, cT = Math.cos(TILT), sT = Math.sin(TILT);
+  var M = N * N;
+  var lonF = new Float32Array(M), rowF = new Int16Array(M);
+  var lonB = new Float32Array(M), rowB = new Int16Array(M);
+  var tint = new Float32Array(M), rim = new Float32Array(M), spec = new Float32Array(M);
+  var mask = new Float32Array(M);
+  var L = (function(){ var v = [-0.5, 0.55, 0.67], m = Math.hypot(v[0], v[1], v[2]); return [v[0]/m, v[1]/m, v[2]/m]; })();
+  function rowOf(lat){ return Math.max(0, Math.min(TH - 1, Math.floor((0.5 - lat / Math.PI) * TH))); }
+  function smooth(a, b, v){ var t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); }
+
+  for(var py = 0; py < N; py++){
+    for(var px = 0; px < N; px++){
+      var k = py * N + px;
+      var x = (px + 0.5 - R) / R, y = -(py + 0.5 - R) / R;
+      var r2 = x * x + y * y, r = Math.sqrt(r2);
+      mask[k] = Math.max(0, Math.min(1, (1 - r) * R + 0.5));
+      if(r2 >= 1.02) continue;
+      var z = Math.sqrt(Math.max(0, 1 - r2));
+      // față
+      var qy = y * cT - z * sT, qz = y * sT + z * cT;
+      lonF[k] = Math.atan2(x, qz); rowF[k] = rowOf(Math.asin(Math.max(-1, Math.min(1, qy))));
+      // spate (vizibil prin transparență)
+      var by = y * cT + z * sT, bz = y * sT - z * cT;
+      lonB[k] = Math.atan2(x, bz); rowB[k] = rowOf(Math.asin(Math.max(-1, Math.min(1, by))));
+      // iluminare
+      var nl = Math.max(0, x * L[0] + y * L[1] + z * L[2]);
+      tint[k] = 0.06 + 0.16 * nl;                       // nuanță roșie foarte ușoară
+      var hx = L[0], hy = L[1], hz = L[2] + 1, hm = Math.hypot(hx, hy, hz);
+      spec[k] = Math.pow(Math.max(0, (x * hx + y * hy + z * hz) / hm), 46) * 0.85;
+      // margine neagră: întunecare spre contur + inel ferm
+      rim[k] = Math.max(Math.min(1, Math.pow(1 - z, 2.6) * 0.95), smooth(0.945, 0.985, r));
+    }
+  }
+
+  var TWO_PI = Math.PI * 2;
+  function render(angle){
+    for(var k = 0; k < M; k++){
+      var o = k * 4, m = mask[k];
+      if(m === 0){ out[o + 3] = 0; continue; }
+      var R_ = 0, G_ = 0, B_ = 0, A_ = 0, sa, t, u;
+      // 1) spate (grilă/logo, estompate)
+      u = ((lonB[k] + angle) / TWO_PI) % 1; if(u < 0) u += 1;
+      t = (rowB[k] * TW + Math.floor(u * TW)) * 4;
+      sa = tex[t + 3] / 255 * 0.38;
+      R_ = tex[t] / 255 * sa; G_ = tex[t + 1] / 255 * sa; B_ = tex[t + 2] / 255 * sa; A_ = sa;
+      // 2) nuanță roșie de sticlă
+      sa = tint[k]; var inv = 1 - sa;
+      R_ = R_ * inv + 1.0 * sa; G_ = G_ * inv + 0.12 * sa; B_ = B_ * inv + 0.24 * sa; A_ = A_ * inv + sa;
+      // 3) față (grilă neagră + logo)
+      u = ((lonF[k] + angle) / TWO_PI) % 1; if(u < 0) u += 1;
+      t = (rowF[k] * TW + Math.floor(u * TW)) * 4;
+      sa = tex[t + 3] / 255 * 0.95; inv = 1 - sa;
+      R_ = R_ * inv + tex[t] / 255 * sa; G_ = G_ * inv + tex[t + 1] / 255 * sa; B_ = B_ * inv + tex[t + 2] / 255 * sa; A_ = A_ * inv + sa;
+      // 4) margine neagră
+      sa = rim[k]; inv = 1 - sa;
+      R_ *= inv; G_ *= inv; B_ *= inv; A_ = A_ * inv + sa;
+      // 5) reflexie
+      sa = spec[k]; inv = 1 - sa;
+      R_ = R_ * inv + sa; G_ = G_ * inv + sa; B_ = B_ * inv + sa; A_ = A_ * inv + sa;
+      // ieșire (alpha nepremultiplicat), cu margine antialiasată
+      var fa = A_ * m;
+      if(fa <= 0.0005){ out[o + 3] = 0; continue; }
+      out[o]     = Math.min(255, R_ / A_ * 255);
+      out[o + 1] = Math.min(255, G_ / A_ * 255);
+      out[o + 2] = Math.min(255, B_ / A_ * 255);
+      out[o + 3] = fa * 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  render(0);
+  if(reduce) return;
+
+  var preloader = document.getElementById('preloader');
+  var t0 = performance.now(), hideAt = 0;
+  (function loop(now){
+    if(preloader.classList.contains('hide')){
+      if(!hideAt) hideAt = now;
+      if(now - hideAt > 900) return;
+    }
+    render(((now - t0) / 2600) * TWO_PI);
+    requestAnimationFrame(loop);
+  })(t0);
+})();
+</script>
+
+<script>
+// ── Selector temă (doar pentru admin conectat cu token) ──
+(function(){
+  var THEME_API = 'https://api.github.com/repos/vladynitu1/vladynitu1.github.io/contents/data/theme.json';
+  var btn = document.getElementById('themeBtn'), ov = document.getElementById('themeOverlay');
+  var list = document.getElementById('themeList'), msg = document.getElementById('themeMsg');
+  var saved = null, busy = false;
+
+  function render(){
+    var cur = window.EMXTheme ? window.EMXTheme.current() : 'clasic';
+    list.innerHTML = '';
+    Object.keys(window.EMXTheme.list).forEach(function(k){
+      var t = window.EMXTheme.list[k];
+      var b = document.createElement('button');
+      b.className = 'theme-opt' + (k === cur ? ' active' : '');
+      b.innerHTML = '<span class="sw">' + t.sw.map(function(c){ return '<i style="background:' + c + '"></i>'; }).join('') + '</span>' +
+                    '<span class="nm">' + t.emoji + ' ' + t.label + '</span>' + (k === cur ? '<span class="ck">ACTIVĂ</span>' : '');
+      b.onclick = function(){ pick(k); };
+      list.appendChild(b);
+    });
+  }
+  function hdrs(tok){ return { 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' }; }
+  async function readRepo(tok){
+    var r = await fetch(THEME_API + '?ref=main&t=' + Date.now(), { headers:hdrs(tok), cache:'no-store' });
+    if(r.status === 404) return { sha:null, theme:null };
+    if(!r.ok) throw new Error('GitHub ' + r.status);
+    var j = await r.json(), th = null;
+    try{ th = JSON.parse(atob(j.content.replace(/\s/g, ''))).theme; }catch(e){}
+    return { sha:j.sha, theme:th };
+  }
+  async function save(name){
+    var tok = getToken(); if(!tok) throw new Error('Nu ești conectat.');
+    var updated = new Date().toISOString(), lastStatus = 0;
+    for(var attempt = 0; attempt < 3; attempt++){
+      var cur = await readRepo(tok);
+      var body = { message:'Temă: ' + name, branch:'main', content:btoa(JSON.stringify({ theme:name, updated:updated })) };
+      if(cur.sha) body.sha = cur.sha;
+      var p = await fetch(THEME_API, { method:'PUT', headers:Object.assign({ 'Content-Type':'application/json' }, hdrs(tok)), body:JSON.stringify(body) });
+      if(p.ok){
+        var chk = await readRepo(tok);                       // verificare: ce e salvat acum în repo
+        if(chk.theme !== name) throw new Error('Salvarea nu s-a confirmat (în repo e „' + chk.theme + '”).');
+        return updated;
+      }
+      lastStatus = p.status;
+      if(p.status !== 409 && p.status !== 422) break;        // sha vechi → reîncearcă cu sha proaspăt
+      await new Promise(function(r){ setTimeout(r, 700); });
+    }
+    throw new Error('Nu am putut salva (' + lastStatus + '). ' + (lastStatus === 403 || lastStatus === 401 ? 'Tokenul trebuie să aibă drept de scriere pe repo.' : 'Încearcă din nou.'));
+  }
+  async function pick(name){
+    if(busy) return;
+    var before = window.EMXTheme.current();
+    busy = true; msg.textContent = 'Se salvează...';
+    window.EMXTheme.preview(name); render();
+    try{
+      var u = await save(name);
+      window.EMXTheme.remember(name, u);
+      msg.textContent = '✓ Salvat în repo: ' + window.EMXTheme.list[name].label + '. Vizitatorii o văd în câteva minute.';
+    }catch(e){
+      window.EMXTheme.preview(before); render();
+      msg.textContent = '✗ ' + e.message;
+    }
+    busy = false;
+  }
+  async function showRepoState(){
+    try{
+      var tok = getToken(); if(!tok) return;
+      var r = await readRepo(tok);
+      msg.textContent = 'Salvat acum în repo: ' + (r.theme && window.EMXTheme.list[r.theme] ? window.EMXTheme.list[r.theme].label : 'nimic (Clasic)') + '.';
+    }catch(e){}
+  }
+
+  btn.onclick = function(){ render(); ov.classList.add('open'); showRepoState(); };
+  document.getElementById('themeClose').onclick = function(){ ov.classList.remove('open'); };
+  ov.addEventListener('click', function(e){ if(e.target === ov) ov.classList.remove('open'); });
+
+  var base = refreshAdminUI;
+  refreshAdminUI = function(){ base(); btn.style.display = hasToken() ? 'block' : 'none'; };
+  refreshAdminUI();
+})();
+</script>
+
+<script>
+// ── Editor „Număr Rame” (doar pentru admin conectat cu token) ──
+(function(){
+  var API = 'https://api.github.com/repos/vladynitu1/vladynitu1.github.io/contents/am/am.json';
+  var API_OLD = 'https://api.github.com/repos/vladynitu1/vladynitu1.github.io/contents/am.json';   // locul vechi (înainte de reorganizare)
+  var btn = document.getElementById('rameBtn'), ov = document.getElementById('rameOverlay');
+  var list = document.getElementById('rameList'), msg = document.getElementById('rameMsg');
+  var saveBtn = document.getElementById('rameSave');
+  var rows = [], busy = false;
+
+  function uid(){ return Math.random().toString(36).slice(2, 9); }
+  function hdrs(tok){ return { 'Authorization':'token ' + tok, 'Accept':'application/vnd.github+json' }; }
+  function b64dec(b){ var raw = atob(b.replace(/\s/g, '')), by = new Uint8Array(raw.length); for(var i = 0; i < raw.length; i++) by[i] = raw.charCodeAt(i); return new TextDecoder().decode(by); }
+  function b64enc(str){ var by = new TextEncoder().encode(str), bin = ''; by.forEach(function(c){ bin += String.fromCharCode(c); }); return btoa(bin); }
+  function splitNums(t){ return String(t).split(/[,;\n]/).map(function(x){ return x.trim(); }).filter(Boolean); }
+
+  function toRows(data){
+    if(Array.isArray(data)){                                   // format vechi (listă plată)
+      var seen = [];
+      data.forEach(function(l){ var t = String(l.seria || '').trim(); if(t && seen.indexOf(t) < 0) seen.push(t); });
+      return seen.map(function(t){ return { id:uid(), titlu:t, numere:[] }; });
+    }
+    var cats = (data && Array.isArray(data.categorii)) ? data.categorii : [];
+    return cats.map(function(c){
+      var nr = Array.isArray(c.numere) ? c.numere : (Array.isArray(c.subcategorii) ? c.subcategorii.map(function(s){ return s.titlu; }) : []);
+      return { id:c.id || uid(), titlu:String(c.titlu || ''), numere:nr.map(function(n){ return String(n || ''); }) };
+    });
+  }
+  function toData(){
+    var cats = [];
+    rows.forEach(function(r){
+      var seen = {}, nr = [];
+      r.numere.forEach(function(raw){ splitNums(raw).forEach(function(n){ if(!seen[n.toLowerCase()]){ seen[n.toLowerCase()] = 1; nr.push(n); } }); });
+      var t = r.titlu.trim();
+      if(t || nr.length) cats.push({ id:r.id, titlu:t || '(fără titlu)', numere:nr });
+    });
+    return { v:3, updated:new Date().toISOString(), categorii:cats };
+  }
+
+  // focus: { id, num } -> num = index de număr, sau 'title'
+  function render(focus){
+    list.innerHTML = '';
+    if(!rows.length){ var e = document.createElement('div'); e.className = 'rame-empty'; e.textContent = 'Nicio categorie. Apasă „+ Categorie”.'; list.appendChild(e); }
+    rows.forEach(function(r){
+      var box = document.createElement('div'); box.className = 'rame-row';
+      var l1 = document.createElement('label'); l1.textContent = 'Titlu';
+      var t = document.createElement('input'); t.type = 'text'; t.placeholder = 'ex. Alstom Coradia'; t.value = r.titlu;
+      t.oninput = function(){ r.titlu = t.value; };
+      var del = document.createElement('button'); del.type = 'button'; del.className = 'rame-del'; del.textContent = '🗑'; del.title = 'Șterge categoria';
+      del.onclick = function(){ if(!confirm('Ștergi categoria „' + (r.titlu || 'fără titlu') + '”?')) return; rows = rows.filter(function(x){ return x !== r; }); render(); };
+      var l2 = document.createElement('label'); l2.textContent = 'Numere (' + r.numere.filter(function(n){ return n.trim(); }).length + ')';
+      var wrap = document.createElement('div'); wrap.className = 'rame-nums';
+      r.numere.forEach(function(val, i){
+        var cell = document.createElement('div'); cell.className = 'num-cell';
+        var inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'RE 020'; inp.value = val;
+        inp.oninput = function(){ r.numere[i] = inp.value; };
+        inp.onkeydown = function(e){
+          if(e.key === 'Enter'){ e.preventDefault(); r.numere.splice(i + 1, 0, ''); render({ id:r.id, num:i + 1 }); }
+          else if(e.key === 'Backspace' && inp.value === '' && r.numere.length > 0){ e.preventDefault(); r.numere.splice(i, 1); render({ id:r.id, num:Math.max(0, i - 1) }); }
+        };
+        inp.onpaste = function(e){
+          var txt = (e.clipboardData || window.clipboardData).getData('text');
+          var parts = splitNums(txt);
+          if(parts.length > 1 || /[,;\n]/.test(txt)){
+            e.preventDefault();
+            r.numere.splice.apply(r.numere, [i, 1].concat(parts));
+            render({ id:r.id, num:i + parts.length - 1 });
+          }
+        };
+        var x = document.createElement('button'); x.type = 'button'; x.className = 'num-x'; x.textContent = '✕'; x.title = 'Șterge numărul';
+        x.onclick = function(){ r.numere.splice(i, 1); render({ id:r.id, num:Math.max(0, i - 1) }); };
+        cell.appendChild(inp); cell.appendChild(x); wrap.appendChild(cell);
+        if(focus && focus.id === r.id && focus.num === i) setTimeout(function(){ inp.focus(); }, 30);
+      });
+      var add = document.createElement('button'); add.type = 'button'; add.className = 'num-add'; add.textContent = '+ Număr';
+      add.onclick = function(){ r.numere.push(''); render({ id:r.id, num:r.numere.length - 1 }); };
+      wrap.appendChild(add);
+      box.appendChild(l1); box.appendChild(t); box.appendChild(del); box.appendChild(l2); box.appendChild(wrap);
+      list.appendChild(box);
+      if(focus && focus.id === r.id && focus.num === 'title') setTimeout(function(){ t.focus(); }, 30);
+    });
+  }
+
+  async function readRepo(tok, url){
+    var r = await fetch((url || API) + '?ref=main&t=' + Date.now(), { headers:hdrs(tok), cache:'no-store' });
+    if(r.status === 404) return { sha:null, data:null };
+    if(!r.ok) throw new Error('GitHub ' + r.status);
+    var j = await r.json(), d = null;
+    try{ d = JSON.parse(b64dec(j.content)); }catch(e){}
+    return { sha:j.sha, data:d };
+  }
+  async function open(){
+    ov.classList.add('open'); msg.textContent = 'Se încarcă…';
+    var tok = getToken(); if(!tok){ msg.textContent = '✗ Nu ești conectat.'; return; }
+    try{
+      var cur = await readRepo(tok); var migrated = false;
+      if(!cur.data){ var old = await readRepo(tok, API_OLD); if(old.data){ cur = old; migrated = true; } }   // date din vechiul am.json
+      rows = toRows(cur.data); render();
+      msg.textContent = migrated ? 'Am preluat datele din vechiul am.json. Apasă Salvează ca să le muți în am/am.json.' : '';
+    }
+    catch(e){ rows = []; render(); msg.textContent = '✗ Nu am putut citi lista (' + e.message + ').'; }
+  }
+  async function save(){
+    if(busy) return;
+    var tok = getToken(); if(!tok){ msg.textContent = '✗ Nu ești conectat.'; return; }
+    busy = true; saveBtn.disabled = true; msg.textContent = 'Se salvează…';
+    var data = toData(), last = 0;
+    try{
+      for(var a = 0; a < 3; a++){
+        var cur = await readRepo(tok);
+        var body = { message:'Număr Rame', branch:'main', content:b64enc(JSON.stringify(data, null, 2)) };
+        if(cur.sha) body.sha = cur.sha;
+        var p = await fetch(API, { method:'PUT', headers:Object.assign({ 'Content-Type':'application/json' }, hdrs(tok)), body:JSON.stringify(body) });
+        if(p.ok){
+          var chk = await readRepo(tok);                       // verificare: ce e scris acum în repo
+          var got = chk.data && Array.isArray(chk.data.categorii) ? chk.data.categorii : null;
+          if(!got || JSON.stringify(got) !== JSON.stringify(data.categorii)) throw new Error('Salvarea nu s-a confirmat în repo (vladynitu1.github.io › am.json). Verifică dacă tokenul are drept de scriere.');
+          rows = toRows(data); render();
+          msg.textContent = '✓ Salvat în repo: ' + (data.categorii.map(function(c){ return c.titlu + ' (' + c.numere.length + ' numere)'; }).join(', ') || 'nimic') + '.';
+          busy = false; saveBtn.disabled = false; return;
+        }
+        last = p.status;
+        if(p.status !== 409 && p.status !== 422) break;
+        await new Promise(function(r){ setTimeout(r, 700); });
+      }
+      throw new Error('Nu am putut salva (' + last + '). ' + (last === 401 || last === 403 ? 'Tokenul trebuie să aibă drept de scriere pe repo.' : 'Încearcă din nou.'));
+    }catch(e){ msg.textContent = '✗ ' + e.message; }
+    busy = false; saveBtn.disabled = false;
+  }
+
+  btn.onclick = open;
+  document.getElementById('rameAdd').onclick = function(){ var r = { id:uid(), titlu:'', numere:[] }; rows.push(r); render({ id:r.id, num:'title' }); };
+  saveBtn.onclick = save;
+  document.getElementById('rameClose').onclick = function(){ ov.classList.remove('open'); };
+  ov.addEventListener('click', function(e){ if(e.target === ov) ov.classList.remove('open'); });
+
+  var base = refreshAdminUI;
+  refreshAdminUI = function(){ base(); btn.style.display = hasToken() ? 'block' : 'none'; };
+  refreshAdminUI();
+})();
+</script>
+
+<script>
+// ── Încărcare fișe de lucru (doar admin cu token) ──
+(function(){
+  var OWNER = 'vladynitu1', REPO = 'vladynitu1.github.io', BRANCH = 'main', DIR = 'data';
+  var CATS = { conductori:'Șefi Tren / Vânzători Bilete', mecanici:'Mecanici' };
+  var cat = 'conductori', metas = { conductori:[], mecanici:[] }, busy = false;
+  var $ = function(id){ return document.getElementById(id); };
+  var btn = $('fiseBtn'), ov = $('fiseOverlay'), st = $('fiseStatus');
+
+  function enc(p){ return p.split('/').map(encodeURIComponent).join('/'); }
+  function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function uid(){ return 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function url(p){ return 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + enc(p); }
+  function say(t){ st.textContent = t; }
+
+  async function readJson(path){
+    var tok = getToken(), h = { Accept:'application/vnd.github.raw' }; if(tok) h.Authorization = 'Bearer ' + tok;
+    try{
+      var r = await fetch(url(path) + '?ref=' + BRANCH + '&t=' + Date.now(), { cache:'no-store', headers:h });
+      if(r.status === 404) return null;
+      if(r.ok) return JSON.parse(await r.text());
+    }catch(e){}
+    try{
+      var r2 = await fetch('https://raw.githubusercontent.com/' + OWNER + '/' + REPO + '/' + BRANCH + '/' + path + '?t=' + Date.now(), { cache:'no-store' });
+      if(r2.ok) return await r2.json();
+    }catch(e){}
+    return null;
+  }
+  // sha proaspăt (fără cache) + reîncercare la 409/422 — ca să meargă mai multe operații la rând fără refresh
+  async function getSha(path, tok){
+    var r = await fetch(url(path) + '?ref=' + BRANCH + '&t=' + Date.now(), { cache:'no-store', headers:{ Authorization:'Bearer ' + tok, Accept:'application/vnd.github+json' } });
+    if(r.status === 404) return null;
+    if(!r.ok) throw new Error('GitHub ' + r.status);
+    return (await r.json()).sha;
+  }
+  async function putFile(path, obj, msg){
+    var tok = getToken(); if(!tok) throw new Error('Lipsește tokenul GitHub — conectează-te ca admin.');
+    var content = b64(JSON.stringify(obj, null, 2)), last = '';
+    for(var i = 0; i < 4; i++){
+      var sha = await getSha(path, tok), body = { message:msg, content:content, branch:BRANCH }; if(sha) body.sha = sha;
+      var r = await fetch(url(path), { method:'PUT', headers:{ Authorization:'Bearer ' + tok, Accept:'application/vnd.github+json', 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+      if(r.ok) return;
+      last = 'Eroare la salvarea pe GitHub (' + r.status + ')';
+      if(r.status !== 409 && r.status !== 422) break;
+      await wait(500 + i * 500);
+    }
+    throw new Error(last);
+  }
+  async function delFile(path, msg){
+    var tok = getToken(); if(!tok) throw new Error('Lipsește tokenul GitHub — conectează-te ca admin.');
+    var last = '';
+    for(var i = 0; i < 4; i++){
+      var sha = await getSha(path, tok); if(!sha) return;
+      var r = await fetch(url(path), { method:'DELETE', headers:{ Authorization:'Bearer ' + tok, Accept:'application/vnd.github+json', 'Content-Type':'application/json' }, body:JSON.stringify({ message:msg, sha:sha, branch:BRANCH }) });
+      if(r.ok || r.status === 404) return;
+      last = 'Eroare la ștergerea de pe GitHub (' + r.status + ')';
+      if(r.status !== 409 && r.status !== 422) break;
+      await wait(500 + i * 500);
+    }
+    throw new Error(last);
+  }
+
+  // ── PDF: text cu poziții (identic cu cel din Fișa de lucru) ──
+  function loadPdfJs(){
+    if(window.pdfjsLib) return Promise.resolve();
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = function(){ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(); };
+      s.onerror = function(){ rej(new Error('Nu am putut încărca biblioteca PDF (verifică conexiunea).')); };
+      document.head.appendChild(s);
+    });
+  }
+  async function extractPdfRows(file){
+    await loadPdfJs();
+    var buf = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({ data:buf }).promise, allRows = [], TOL = 2;
+    for(var p = 1; p <= pdf.numPages; p++){
+      var page = await pdf.getPage(p), content = await page.getTextContent();
+      var items = content.items.map(function(it){ return { x:it.transform[4], y:it.transform[5], w:it.width || 0, str:it.str.trim() }; }).filter(function(i){ return i.str.length > 0; });
+      items.sort(function(a, b){ return b.y - a.y || a.x - b.x; });
+      var clusters = [], cur = null;
+      items.forEach(function(it){
+        if(cur && Math.abs(it.y - cur.refY) <= TOL) cur.items.push(it);
+        else { if(cur) clusters.push(cur); cur = { refY:it.y, items:[it] }; }
+      });
+      if(cur) clusters.push(cur);
+      clusters.forEach(function(c){
+        var sorted = c.items.slice().sort(function(a, b){ return a.x - b.x; });
+        allRows.push({ y:c.refY, items:sorted.map(function(i){ return { x:i.x, w:i.w, str:i.str }; }) });
+      });
+    }
+    return allRows;
+  }
+
+  // ── listă ──
+  function metaPath(c){ return DIR + '/' + c + '/index.json'; }
+  async function loadMetas(){
+    for(var c in CATS){ var d = await readJson(metaPath(c)); metas[c] = Array.isArray(d) ? d : []; }
+  }
+  function render(){
+    document.querySelectorAll('.fise-tab').forEach(function(t){ t.classList.toggle('active', t.dataset.cat === cat); });
+    var docs = (metas[cat] || []).slice().sort(function(a, b){ return EMXLuni.info(b).key - EMXLuni.info(a).key || String(b.uploadedAt).localeCompare(String(a.uploadedAt)); });
+    var L = $('fiseList');
+    if(!docs.length){ L.innerHTML = '<div class="fise-hint">Nicio fișă încărcată pentru ' + esc(CATS[cat]) + '.</div>'; return; }
+    L.innerHTML = docs.map(function(d){
+      var i = EMXLuni.info(d);
+      var warn = i.src === 'nume' ? '' : ' · ⚠ luna nu e la începutul numelui (folosită ' + (i.src === 'eticheta' ? 'eticheta' : 'data încărcării') + ')';
+      return '<div class="fise-row"><div class="nm"><b>' + esc(d.filename) + '</b><span>📅 ' + esc(i.label) + warn + ' · încărcat ' + new Date(d.uploadedAt).toLocaleDateString('ro-RO') + '</span></div>' +
+        '<a href="fisalucru/?cat=' + cat + '&doc=' + encodeURIComponent(d.id) + '">Vezi</a>' +
+        '<button class="fise-del" data-del="' + esc(d.id) + '">Șterge</button></div>';
+    }).join('');
+    L.querySelectorAll('[data-del]').forEach(function(b){ b.onclick = function(){ remove(b.dataset.del); }; });
+  }
+
+  async function upload(){
+    if(busy) return;
+    var file = $('fiseFile').files[0], month = $('fiseMonth').value.trim();
+    if(!getToken()){ say('Ai nevoie de token GitHub (conectează-te ca admin).'); return; }
+    if(!file){ say('Alege un fișier PDF.'); return; }
+    busy = true; $('fiseUpBtn').disabled = true; var c = cat;
+    try{
+      say('Se extrage textul din PDF...');
+      var rows = await extractPdfRows(file);
+      if(!rows.length) throw new Error('Nu am găsit text în PDF (poate e scanat/imagine).');
+      var id = uid();
+      say('Se urcă pe GitHub...');
+      await putFile(DIR + '/' + c + '/' + id + '.json', { rows:rows }, 'add doc ' + file.name);
+      var meta = { id:id, filename:file.name, month:month, uploadedAt:new Date().toISOString() };
+      var cur = await readJson(metaPath(c)); cur = Array.isArray(cur) ? cur : [];
+      cur.unshift(meta); metas[c] = cur;
+      await putFile(metaPath(c), cur, 'update index ' + c);
+      var i = EMXLuni.info(meta);
+      say('✓ Salvat: ' + file.name + '\nLuna detectată: ' + i.label + (i.src === 'nume' ? '' : '  (⚠ luna nu e la începutul numelui fișierului)'));
+      $('fiseFile').value = ''; $('fiseMonth').value = '';
+      render();
+    }catch(e){ console.error(e); say('✗ ' + e.message); }
+    busy = false; $('fiseUpBtn').disabled = false;
+  }
+  async function remove(id){
+    if(busy) return;
+    if(!confirm('Ștergi definitiv această fișă?')) return;
+    busy = true; var c = cat;
+    try{
+      say('Se șterge de pe GitHub...');
+      await delFile(DIR + '/' + c + '/' + id + '.json', 'delete doc ' + id);
+      var cur = await readJson(metaPath(c)); cur = (Array.isArray(cur) ? cur : []).filter(function(d){ return d.id !== id; });
+      metas[c] = cur;
+      await putFile(metaPath(c), cur, 'update index ' + c);
+      say('Șters.'); render();
+    }catch(e){ console.error(e); say('✗ ' + e.message); }
+    busy = false;
+  }
+
+  btn.onclick = async function(){
+    ov.classList.add('open'); say('Se încarcă lista...'); render();
+    await loadMetas(); say(''); render();
+  };
+  $('fiseClose').onclick = function(){ ov.classList.remove('open'); };
+  ov.addEventListener('click', function(e){ if(e.target === ov) ov.classList.remove('open'); });
+  $('fiseTabs').addEventListener('click', function(e){ var t = e.target.closest('.fise-tab'); if(t){ cat = t.dataset.cat; say(''); render(); } });
+  $('fiseUpBtn').onclick = upload;
+
+  var base = refreshAdminUI;
+  refreshAdminUI = function(){ base(); btn.style.display = hasToken() ? 'block' : 'none'; };
+  refreshAdminUI();
+})();
+</script>
+
+<script src="assets/js/nume-auto.js?v=1" defer></script>
+<script src="assets/js/status.js?v=8" defer></script>
+</body>
+</html>
